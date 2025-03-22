@@ -24,12 +24,25 @@ ASFLAGS     += --cpu 65SC02
 BUILD_DIR=build/x16
 EMU_DIR=../x16-emulator
 
+ROM_NAME=multitask.rom
+
 CFG_DIR=$(BUILD_DIR)/cfg
 
 MULTITASK_SOURCES = \
 	multitask/scheduler.s
+
+GENERIC_DEPS = \
+	inc/kernal.inc \
+	inc/mac.inc \
+	inc/io.inc \
+	inc/fb.inc \
+	inc/banks.inc \
+	inc/regs.inc \
+	inc/65c816.inc \
+	kernsup/kernsup.inc
 	
-MULTITASK_DEPS = ""
+MULTITASK_DEPS = \
+	$(GENERIC_DEPS) \
 
 MULTITASK_OBJS  = $(addprefix $(BUILD_DIR)/, $(MULTITASK_SOURCES:.s=.o))
 
@@ -40,15 +53,15 @@ ROM_LABELS=$(BUILD_DIR)/rom_labels.h
 ROM_LST=$(BUILD_DIR)/rom_lst.h
 GIT_SIGNATURE=$(BUILD_DIR)/../signature.bin
 
-all: $(BUILD_DIR)/rom.bin $(ROM_LABELS) $(ROM_LST)
+all: $(BUILD_DIR)/$(ROM_NAME) $(ROM_LABELS) $(ROM_LST)
 
 #install: all
-#	cp $(BUILD_DIR)/rom.bin $(EMU_DIR)/rom.bin
+#	cp $(BUILD_DIR)/$(ROM_NAME) $(EMU_DIR)/$(ROM_NAME)
 
-$(BUILD_DIR)/rom.bin: $(BANK_BINS)
+$(BUILD_DIR)/$(ROM_NAME): $(BANK_BINS)
 	cat $(BANK_BINS) > $@
 
-#test: FORCE $(BUILD_DIR)/rom.bin
+#test: FORCE $(BUILD_DIR)/$(ROM_NAME)
 #	for f in test/unit/*/*.py; do PYTHONPATH="test/unit" python3 -B $${f}; done
 
 clean:
@@ -74,15 +87,11 @@ $(BUILD_DIR)/%.o: %.s
 # Golden RAM : MULTITASK
 $(BUILD_DIR)/multitask.bin: $(GIT_SIGNATURE) $(MULTITASK_OBJS) $(MULTITASK_DEPS) $(CFG_DIR)/multitask-x16.cfg
 	@mkdir -p $$(dirname $@)
-	$(LD) -C $(CFG_DIR)/multitask-x16.cfg $(MULTITASK_OBJS) -o $@ -m $(BUILD_DIR)/multitask.map -Ln $(BUILD_DIR)/multitask.sym \
-	`${BUILD_DIR}/../../findsymbols ${BUILD_DIR}/charset.sym __CHARPET_LOAD__ __CHARPET2_LOAD__ __CHARLAE_LOAD__ __CHARLAE2_LOAD__` \
-	`${BUILD_DIR}/../../findsymbols ${BUILD_DIR}/charset.sym __CHARKAT_LOAD__ __CHARISO_LOAD__ __CHARISO2_LOAD__ __CHARCYR_LOAD__` \
-	`${BUILD_DIR}/../../findsymbols ${BUILD_DIR}/charset.sym __CHARCYR2_LOAD__ __CHARANSI_LOAD__`
+	$(LD) -C $(CFG_DIR)/multitask-x16.cfg $(MULTITASK_OBJS) -o $@ -m $(BUILD_DIR)/multitask.map -Ln $(BUILD_DIR)/multitask.sym 	
 	./scripts/relist.py $(BUILD_DIR)/multitask.map $(BUILD_DIR)/multitask
 
 $(BUILD_DIR)/rom_labels.h: $(BANK_BINS)
-	./scripts/symbolize.sh 0 build/x16/multitask.sym   > $@	
-	mv $(BUILD_DIR)/rom_labels.tmp $@
+	./scripts/symbolize.sh 0 build/x16/multitask.sym   > $@		
 
 $(BUILD_DIR)/rom_lst.h: $(BANK_BINS)
 	./scripts/trace_lst.py 0 `find build/x16/multitask/ -name \*.rlst`     > $@
