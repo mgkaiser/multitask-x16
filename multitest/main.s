@@ -32,15 +32,22 @@
     sta r3L    
     jsl mt_start            ; Start the process
 
-    ; 8 bit mode
+    ; 8 bit mode, emulation
     .A8
     .I8
-    sep #$30           
+    sep #$30
+    sec
+    xce           
 
     rts
 .endproc
 
 .proc thread: far
+    top:
+        lda $07fd
+        inc
+        sta $07fd
+    bra top
     rtl
 .endproc
 

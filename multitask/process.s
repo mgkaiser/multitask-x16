@@ -50,16 +50,26 @@
     ldx r2    
     txs    
 
-    ; setup the new stack    
+    ; setup the new stack
+    .A8         ; 8 bit mode
+    .I8
+    sep #$30
+    lda #$30    ; Status for new process
+    pha
+    lda #$31    ; Emultion mode for new process
+    pha         
+    .A16        ; 16 bit mode
+    .I16
+    rep #$30      
     pha         ; A for new process
     phx         ; X for new process
     phy         ; Y for new process    
     .A8         ; 8 bit mode
     .I8
     sep #$30
-    lda #$30    ; Status for new process
-    pha
     lda r3L     ; Data Bank of new process
+    pha
+    lda #$00    ; RAM/ROM banks for new process
     pha
     lda r1L     ; Program Bank of new process
     pha    

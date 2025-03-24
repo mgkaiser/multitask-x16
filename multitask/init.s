@@ -44,8 +44,12 @@
 
     ; Attach new IRQ
     lda #mt_scheduler
-    sta irq + 1     
+    sta irq + 1
 
+    ; Setup first VBLANK
+    lda #1
+    sta VERA_IEN
+    
     alreadyInitialized:
 
     ; interrupts on

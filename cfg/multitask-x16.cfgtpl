@@ -1,6 +1,6 @@
 MEMORY {
     JUMP:       start = $0400, size = $0040, fill=yes, fillval=$00;    
-    MULTITASK:  start = $0440, size = $0200, fill=yes, fillval=$ea;    
+    MULTITASK:  start = $0440, size = $0300, fill=yes, fillval=$ea;    
 }
 
 SEGMENTS {
