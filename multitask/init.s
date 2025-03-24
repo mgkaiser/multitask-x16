@@ -1,5 +1,6 @@
 .p816
 
+.include "mac.inc"
 .include "multitask.inc"
 .include "regs.inc"
 .include "banks.inc"

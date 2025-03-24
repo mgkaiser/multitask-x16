@@ -1,5 +1,6 @@
 .p816
 
+.include "mac.inc"
 .include "multitask.inc"
 .include "regs.inc"
 .include "io.inc"
@@ -64,12 +65,18 @@ ps2data_fetch = $d104
     inc
     sta $07ff
 
-    ; 8 bit mode, emulation
-    .A8         ; 8 bit mode
+    ; Change direct page to $0000 for the Kernal routines 
+    lda #$0000        
+    tcd
+
+    ; If we're not running task 0, switch to the task 0 stack    
+
+    ; 8 bit mode, emulation, switch DP and stack    
+    .A8             ; 8 bit mode
     .I8
-    sep #$30   
-    sec         ; Emulation mode
-    xce
+    sep #$30       
+    sec             ; Emulation mode
+    xce    
 
     ; Do stuff
     jsr ps2data_fetch
@@ -89,9 +96,9 @@ ps2data_fetch = $d104
     .I16   
     clc 
     xce
-    rep #$30
+    rep #$30       
 
-    ; ** BEGIN Context Switch
+    ; ** BEGIN Context Switch - This will also clean up the switched stack
 
     ; taskTable[currentTask] = SP
 

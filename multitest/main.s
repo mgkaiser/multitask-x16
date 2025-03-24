@@ -2,6 +2,8 @@
 
 .export thread
 
+.include "mac.inc"
+.include "multitask.inc"
 .include "multitest.inc"
 .include "regs.inc"
 
@@ -22,15 +24,7 @@
     jsl mt_init
 
     ; ** Start a new process
-    lda #thread             ; Address of the process we are starting
-    sta r0
-    lda #$00                ; Bank of the process we are starting
-    sta r1L
-    lda #proc_stack - 1     ; Stack for the process we are starting
-    sta r2
-    lda #$00                ; Databank for the process we are starting
-    sta r3L    
-    jsl mt_start            ; Start the process
+    Multitask_Start thread, #$0000, proc_stack, ^D
 
     ; 8 bit mode, emulation
     .A8
@@ -42,7 +36,7 @@
     rts
 .endproc
 
-.proc thread: far
+.proc thread: near
     top:
         lda $07fd
         inc
@@ -52,7 +46,7 @@
 .endproc
 
 .segment "DATA"    
-        .repeat $40
-            .byte $00
-        .endrep
-    proc_stack:     ; SP goes to TOP of stack
+    .repeat $3f
+        .byte $00
+    .endrep
+    proc_stack: .byte $00

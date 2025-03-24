@@ -1,5 +1,6 @@
 .p816
 
+.include "mac.inc"
 .include "multitask.inc"
 .include "regs.inc"
 
@@ -13,118 +14,176 @@
 
 ; mt_start - Start a new process
 ; (Use Native Mode)
+; CALLING CONVENTION: Stack
 ; IN:
-;   R0 - address of process
-;   R1 - bank of process
-;   R2 - stack address of process (must be in 1st 64k)
-;   R3 - data bank of process
+;   address of process
+;   bank of process
+;   stack address of process (must be in 1st 64k)
+;   data bank of process
 ; OUT:
-;   R0 - Process ID (0 = fail)
-; CLOBBERS:
-;   R4, R5
+;   Process ID (0 = fail)
 .proc mt_start: near
-
-    ; interrupts off
-    sei    
-
+        
     ; 16 bit mode
     .A16
     .I16
     rep #$30        
 
+    ; Save working registers
+    ProcPrefix    
+
+    ; Create local variable
+    DeclareLocal l_newProcSlot, 0
+    DeclareLocal l_currentStack, 1
+    SetLocalCount 2
+
+    ; Declare parameters - reverse order
+    DeclareParam p_dataBank, 0
+    DeclareParam p_stackAddress, 1
+    DeclareParam p_processBank, 2
+    DeclareParam p_processAddr, 3
+    DeclareParam r_retVal, 4
+    
+    ; Setup stack frame
+    SetupStackFrame
+    
+    ; interrupts off
+    sei            
+
     ; Make sure there is space in the task table
     jsr find_proc_slot
-    cpx #$ff
+    cpx #$ffff
     bne skip1
         lda #$0000
-        sta r0
+        sta r_retVal
         bra end
     skip1:
-    stx r4    
+    stx l_newProcSlot    
 
     ; remember current stack
     tsx
-    stx r5
+    stx l_currentStack
 
     ; set the new stack
-    ldx r2    
+    ldx p_stackAddress    
     txs    
 
     ; setup the new stack
-    .A8         ; 8 bit mode
+    .A8                 ;  8 bit mode
     .I8
     sep #$30
-    lda #$30    ; Status for new process
+    lda #$30            ; Status for new process
     pha
-    lda #$31    ; Emultion mode for new process
+    lda #$31            ; Native mode for new process
     pha         
-    .A16        ; 16 bit mode
+    .A16                ; 16 bit mode
     .I16
     rep #$30      
-    pha         ; A for new process
-    phx         ; X for new process
-    phy         ; Y for new process    
-    .A8         ; 8 bit mode
+    pha                 ; A for new process
+    phx                 ; X for new process
+    phy                 ; Y for new process    
+    .A8                 ; 8 bit mode
     .I8
     sep #$30
-    lda r3L     ; Data Bank of new process
+    lda p_dataBank      ; Data Bank of new process
     pha
-    lda #$00    ; RAM/ROM banks for new process
+    lda #$00            ; RAM/ROM banks for new process
     pha
-    lda r1L     ; Program Bank of new process
+    lda p_processBank   ; Program Bank of new process
     pha    
-    .A16        ; 16 bit mode
+    .A16                ; 16 bit mode
     .I16
-    rep #$30    ; Address of new process
-    lda r0
+    rep #$30            
+    lda p_processAddr   ; Address of new process
     pha       
 
     ; Store where the stack pointer it in the task table
     tsx
     txa
-    ldx r4    
+    ldx l_newProcSlot    
     sta taskTable, x    
     
     ; restore current stack
-    ldx r5
+    ldx l_currentStack
     txs
 
     end:
 
     ; interrupts on
     cli
-
+    
+    ; Exit the procedure
+    FreeLocals
+    ProcSuffix    
+    
     rtl
 .endproc
 
 ; mt_kill - Terminate a process
 ; (Use Native Mode)
+; CALLING CONVENTION: Stack
 ; IN:
-;   X - Process ID
+;   Process ID
 ; OUT:
-;   None
+;   Success/Failure = true/false
 .proc mt_kill: near     
-
-    ; interrupts off
-    sei    
 
     ; 16 bit mode
     .A16
     .I16
-    rep #$30   
+    rep #$30        
 
-    ; Remove the task from the task table
-    lda #$0000
-    sta taskTable, x
+    ; Save working registers
+    ProcPrefix    
+
+    ; Create local variable    
+    SetLocalCount 0
+
+    ; Declare parameters - reverse order
+    DeclareParam p_ProcessId, 0 
+    DeclareParam r_retVal, 1   
+    
+    ; Setup stack frame
+    SetupStackFrame
+
+    ; interrupts off
+    sei    
+     
+    ; Make sure task 0 cannot be killed
+    ldx p_ProcessId
+    cpx #$0000
+    beq skip
+
+        ; Remove the task from the task table
+        lda #$0000
+        sta taskTable, x
+
+        ; Return true 
+        lda #$ffff
+        sta r_retVal
+        bra skip2
+
+    skip:
+
+        ; Return false
+        lda #$0000
+        sta r_retVal
+
+    skip2:
 
     ; interrupts on
     cli
+
+    ; Exit the procedure
+    FreeLocals
+    ProcSuffix    
 
     rtl
 .endproc
 
 ; find_proc_slot - Find the next available processor slot
-; (Use .A16, .I16)
+; (Use Native Mode)
+; CALLING CONVENTION: Fastcall
 ; IN:
 ;   none
 ; OUT:
@@ -138,7 +197,7 @@
         inx
         cpx #max_tasks
     bne loop
-    ldx #$ff
+    ldx #$ffff
     end:
     rts
 .endproc

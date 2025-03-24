@@ -299,3 +299,83 @@
 	lda addr
 	ora addr+1
 .endmacro
+
+.macro ProcPrefix
+	pha  
+    phx
+    phy
+    phd
+.endmacro
+
+.macro ProcSuffix
+	pld
+    ply
+    plx
+    pla
+.endmacro
+
+.macro SetupStackFrame
+	tsc
+    tcd
+.endmacro
+
+.macro DeclareLocal lname, position
+	lname = (position * 2) + 1	
+	pha
+.endmacro
+
+.macro DeclareParam lname, position
+	lname = (position * 2) + 11 + (lcount * 2)
+.endmacro
+
+.macro FreeLocals
+	.repeat lcount
+		pla
+	.endrepeat
+.endmacro
+
+.macro FreeParams count
+	.repeat count
+		pla
+	.endrepeat
+.endmacro
+
+.macro SetLocalCount count
+	lcount = count
+.endmacro
+
+; Push Params, detect type
+; PER = label				param is an offset, but pushes the resolved value onto the stack
+; PEA = Absloute Value		param is the actual 16-bit value to push on the stack
+; PEI = Pointer 			param is a DP address to be used as a pointer.  The value it points to is pushed on the stack
+.macro SetParam arg
+	.if (.match (.left (1, {arg}), #))
+		.out "-- PEA --"
+		.byte $f4
+		.byte <(.right (.tcount ({arg})-1, {arg}))		
+		.byte >(.right (.tcount ({arg})-1, {arg}))		
+	.else
+		.if (.match (.left (1, {arg}), *))
+			.out "-- PEI --"
+			pei (.right (.tcount ({arg})-1, {arg}))
+		.else			
+			.if (.match (.left (2, {arg}), ^A))
+				.out "-- A --"
+				pha
+			.else
+				.if (.match (.left (2, {arg}), ^D))
+					.out "-- D --"
+					tdc
+					pha
+				.else
+					.out "-- PER --"
+					per arg				
+				.endif
+			.endif
+		.endif
+	.endif
+.endmacro
+
+.macro SetRetVal
+	pha
+.endmacro
