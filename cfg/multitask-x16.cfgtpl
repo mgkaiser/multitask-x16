@@ -1,11 +1,10 @@
 MEMORY {
- JUMP: start = $0400, size = $0040, fill=yes, fillval=$00;
- DATA: start = $0440, size = $0040, fill=yes, fillval=$00;
- CODE: start = $0480, size = $0200, fill=yes, fillval=$ea;
+    JUMP:       start = $0400, size = $0040, fill=yes, fillval=$00;    
+    MULTITASK:  start = $0440, size = $0200, fill=yes, fillval=$ea;    
 }
 
 SEGMENTS {
- JUMP: load = JUMP, type = ro;
- DATA: load = DATA, type = rw;
- CODE: load = CODE, type = ro;
+    MULTITASK:      load = MULTITASK,   type = ro;
+    JUMP:           load = JUMP,        type = ro;
+    DATA:           load = MULTITASK,   type = rw;
 }

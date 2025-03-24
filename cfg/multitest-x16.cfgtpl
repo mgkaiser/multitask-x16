@@ -1,0 +1,8 @@
+MEMORY {    
+    MULTITEST:  start = $2000, size = $0200, fill=yes, fillval=$ea;    
+}
+
+SEGMENTS {
+    MULTITEST:      load = MULTITEST,   type = ro;    
+    DATA:           load = MULTITEST,   type = rw;
+}

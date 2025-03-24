@@ -1,15 +1,63 @@
-.segment "JUMP"
-	jmp init
+.p816
 
-.segment "DATA"
+.include "multitask.inc"
+.include "regs.inc"
+.include "io.inc"
 
-	.word $0000
-	.word $0001
-	.word $0002
-	.word $0004
+.export mt_scheduler
 
-.segment "CODE"
+; from main.s
+.import currentTask
+.import oldIrq
 
-init:
-	lda $00
-	rts
+.segment "MULTITASK"
+
+.proc mt_scheduler: near              
+
+    ; Save the state        
+    pha
+    phx
+    phy
+    php
+    phd
+
+    ; Push a fake address for the stock RTI
+    phk
+    pea mt_scheduler_return     
+
+    ; Do something to prove interrupt is alive
+    lda $07ff
+    inc
+    sta $07ff
+
+    ; Chain to old interrrupt in 8 bit mode
+    ;.A8    
+    ;sep #$30        
+    jmp (oldIrq)    
+
+.endproc
+
+.proc mt_scheduler_return: near    
+
+    ; 16 bit mode    
+    .A16
+    .I16
+    rep #$30   
+
+    ; Store current context    
+
+    ; Advance the task pointer
+
+    ; Make next task active
+
+    ; Restore state
+    pld
+    plp
+    ply
+    plx
+    pla
+    
+    ; Return from interrupt
+    rti
+
+.endproc
