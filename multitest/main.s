@@ -1,6 +1,7 @@
 .p816
 
 .export thread
+.export proc_stack
 
 .include "mac.inc"
 .include "multitask.inc"
@@ -11,27 +12,19 @@
 
 .proc start: near
     
-    ; Native Mode
-    clc
-    xce    
-
     ; 16 bit mode
-    .A16
-    .I16
-    rep #$30        
+    modeNative    
+    mode16   
 
     ; ** Initialize multitasking engine
-    jsl mt_init
+    Multitask_Init
 
     ; ** Start a new process
     Multitask_Start thread, #$0000, proc_stack, ^D
 
-    ; 8 bit mode, emulation
-    .A8
-    .I8
-    sep #$30
-    sec
-    xce           
+    ; 8 bit mode
+    mode8    
+    modeEmulation
 
     rts
 .endproc

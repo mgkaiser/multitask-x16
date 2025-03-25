@@ -23,7 +23,7 @@
 
 .segment "DATA"
 
-	currentTask: 	.byte $00
+	currentTask: 	.word $00
 	oldIrq:		 	.word $0000	
 
 	; 32 bytes to hold task table.  All, $00, not used yet

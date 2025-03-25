@@ -324,8 +324,27 @@
 	pha
 .endmacro
 
+.macro DeclareLocalWithValue lname, value, position
+	lname = (position * 2) + 1	
+	lda value
+	pha
+.endmacro
+
+.macro DeclareLocalPointerWithValue lname, value, position
+	lname = (position * 2) + 1	
+	per value	
+.endmacro
+
+.macro ProcNear
+	farOffset=0
+.endmacro
+
+.macro ProcFar
+	farOffset=1
+.endmacro
+
 .macro DeclareParam lname, position
-	lname = (position * 2) + 11 + (lcount * 2)
+	lname = (position * 2) + 11 + farOffset + (lcount * 2)
 .endmacro
 
 .macro FreeLocals
@@ -378,4 +397,41 @@
 
 .macro SetRetVal
 	pha
+.endmacro
+
+.macro rjsr arg	
+	.local continue
+	per continue-1
+	brl arg
+	continue:
+.endmacro
+
+.macro rjsl arg	
+	.local continue
+	phk
+	per continue-1
+	brl arg
+	continue:
+.endmacro
+
+.macro mode16
+	.A16
+    .I16
+    rep #$30 
+.endmacro
+
+.macro mode8
+	.A8
+    .I8
+    sep #$30 
+.endmacro
+
+.macro modeEmulation
+	sec             
+    xce    
+.endmacro
+
+.macro modeNative
+	clc
+    xce    
 .endmacro

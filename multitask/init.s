@@ -25,26 +25,51 @@
 ; OUT:
 ;   None
 .proc mt_init: near
-    
-    ; interrupts off
-    sei    
-
+        
     ; 16 bit mode
-    .A16
-    .I16
-    rep #$30   
+    mode16  
+
+    ; Save working registers
+    ProcPrefix 
+    ProcFar 
+
+    ; Create local variable - Number in descending order - Number in descending order         
+    DeclareLocalPointerWithValue l_pCurrentTask, currentTask, 2
+    DeclareLocalPointerWithValue l_pMTScheduler, mt_scheduler, 1
+    DeclareLocalPointerWithValue l_pOldIrq, oldIrq, 0
+    SetLocalCount 3
+
+    ; Declare parameters - reverse order        
+    DeclareParam r_retVal, 0  
+
+    ; Setup stack frame
+    SetupStackFrame
+
+    lda l_pCurrentTask    
+    sta $0700
+    lda l_pMTScheduler
+    sta $0702
+    lda l_pOldIrq
+    sta $0704
+
+    ; interrupts off
+    sei        
 
     ; Are we initialized?
-    lda oldIrq
+    lda (l_pOldIrq)
     cmp #$0000
     bne alreadyInitialized
 
+    ; Always start with task 0
+    lda #$0000
+    sta (l_pCurrentTask)
+
     ; Remember old IRQ
     lda irq + 1
-    sta oldIrq
+    sta (l_pOldIrq)
 
     ; Attach new IRQ
-    lda #mt_scheduler
+    lda l_pMTScheduler
     sta irq + 1
 
     ; Setup first VBLANK
@@ -55,6 +80,13 @@
 
     ; interrupts on
     cli
+
+    ; Store the results
+    sty r_retVal    
+
+    ; Exit the procedure
+    FreeLocals
+    ProcSuffix        
 
     rtl
 
@@ -67,14 +99,26 @@
 ; OUT:
 ;   None
 .proc mt_done: near
-    
-    ; interrupts off
-    sei    
 
     ; 16 bit mode
-    .A16
-    .I16
-    rep #$30
+    mode16  
+
+    ; Save working registers
+    ProcPrefix 
+    ProcFar 
+    
+    ; Create local variable - Number in descending order          
+    DeclareLocalPointerWithValue l_pOldIrq, oldIrq, 0
+    SetLocalCount 1
+
+    ; Declare parameters - reverse order        
+    DeclareParam r_retVal, 0  
+
+    ; Setup stack frame
+    SetupStackFrame
+    
+    ; interrupts off
+    sei        
 
     ; Are we initialized?
     lda oldIrq
@@ -82,13 +126,20 @@
     beq alreadyDone
 
     ; Restore old irq
-    lda oldIrq    
+    lda (l_pOldIrq)
     sta irq + 1
 
     alreadyDone:
 
     ; interrupts on
     cli
+
+    ; Store the results
+    sty r_retVal    
+
+    ; Exit the procedure
+    FreeLocals
+    ProcSuffix    
 
     rtl
 .endproc

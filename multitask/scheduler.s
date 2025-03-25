@@ -6,45 +6,34 @@
 .include "io.inc"
 .include "kernal.inc"
 
-cursor_blink = $c86c
-led_update = $e73a
-kbd_scan = $d242
-clock_update = $e94c
-ps2data_fetch = $d104
+; Kernal routines we're "borrowing"
+cursor_blink    = $c86c
+led_update      = $e73a
+kbd_scan        = $d242
+clock_update    = $e94c
+ps2data_fetch   = $d104
+
+; Pointers to variables
+pCurrentTask    =  $7c
+pTaskTable       =  $7e
 
 .export mt_scheduler
 
 ; from main.s
 .import currentTask
-.import oldIrq
+.import taskTable
 
 .segment "MULTITASK"
 
-.proc mt_scheduler_x: near
-
-    ; Do something to prove interrupt is alive
-    lda $07ff
-    inc
-    sta $07ff
-
-    ; Acknowlege IRQ
-    lda #1
-    sta VERA_ISR
-
-    jmp(oldIrq)
-.endproc
-
+; This is a special procedure.  DO NOT use paramater passing.  This is the interrupt handler
 .proc mt_scheduler: near              
 
     ; Save the state
     php         ; Push Flags
     xce         ; Push emulator flag
     php
-    clc         ; Native Mode
-    xce
-    .A16        ; 16 bit mode
-    .I16
-    rep #$30        
+    modeNative
+    mode16        
     pha         ; Push A
     phx         ; Push X
     phy         ; Push Y
@@ -56,9 +45,13 @@ ps2data_fetch = $d104
     stz $00
     stz $01
 
-    ; Push a fake address for the stock RTI
-    ;phk
-    ;pea mt_scheduler_return     
+    ; Get pointers to variables (relocatable code)      
+    per taskTable
+    pla
+    sta pTaskTable
+    per currentTask
+    pla
+    sta pCurrentTask
 
     ; Do something to prove interrupt is alive
     lda $07ff
@@ -69,14 +62,26 @@ ps2data_fetch = $d104
     lda #$0000        
     tcd
 
-    ; If we're not running task 0, switch to the task 0 stack    
+    ; Remember the current stack
+    lda (pCurrentTask)
+    tay
+    tsc
+    sta(pTaskTable) ,y
 
-    ; 8 bit mode, emulation, switch DP and stack    
-    .A8             ; 8 bit mode
-    .I8
-    sep #$30       
-    sec             ; Emulation mode
-    xce    
+    ; Are we running task 0?
+    lda (pCurrentTask)
+    cmp #$0000
+    beq skipStackSet
+
+        ; If we're not running task 0, switch to the task 0 stack    
+        lda (pTaskTable)
+        tcs
+
+    skipStackSet:
+
+    ; 8 bit mode
+    mode8           
+    modeEmulation
 
     ; Do stuff
     jsr ps2data_fetch
@@ -91,24 +96,48 @@ ps2data_fetch = $d104
     lda #1
     sta VERA_ISR
 
-    ; 16 bit mode, no emulation
-    .A16
-    .I16   
-    clc 
-    xce
-    rep #$30       
+    ; 16 bit mode
+    modeNative    
+    mode16 
 
     ; ** BEGIN Context Switch - This will also clean up the switched stack
+    ; Remember the current stack    
 
-    ; taskTable[currentTask] = SP
+    nextTask:
 
-    ; @1: currentTask++
+        ; @1: currentTask++
+        lda (pCurrentTask)
+        inc
+        inc
 
-    ; if currentTask = max_tasks currentTask = 0
+        ; if currentTask = max_tasks currentTask = 0
+        cmp #max_tasks * 2
+        bne skipZero
+            lda #$0000
+        skipZero:        
+        sta (pCurrentTask)
 
-    ; if taskTable[curentTask] == 0 goto @1
+        ; if taskTable[curentTask] == 0 goto @1
+        tay
+        lda(pTaskTable), Y
+        cmp #$0000
+        beq nextTask   
+
+        ; Debug out pCurrentTask, Y and *pTaskTable + Y     
+        lda pCurrentTask
+        sta $0700
+        lda (pCurrentTask) 
+        sta $0702
+        lda pTaskTable
+        sta $0704
+        lda (pTaskTable), y
+        sta $0706
+        sty $0708
 
     ; SP = taskTable[currentTask]
+    ;tcs
+    lda #$0000
+    sta (pCurrentTask)
 
     ; ** END Context Switch
 

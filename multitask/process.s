@@ -25,17 +25,17 @@
 .proc mt_start: near
         
     ; 16 bit mode
-    .A16
-    .I16
-    rep #$30        
+    mode16    
 
     ; Save working registers
-    ProcPrefix    
+    ProcPrefix   
+    ProcFar 
 
-    ; Create local variable
-    DeclareLocal l_newProcSlot, 0
+    ; Create local variable - Number in descending order
+    DeclareLocal l_newProcSlot, 2
     DeclareLocal l_currentStack, 1
-    SetLocalCount 2
+    DeclareLocalPointerWithValue l_pTaskTable, taskTable, 0
+    SetLocalCount 3    
 
     ; Declare parameters - reverse order
     DeclareParam p_dataBank, 0
@@ -46,62 +46,55 @@
     
     ; Setup stack frame
     SetupStackFrame
-    
+            
     ; interrupts off
     sei            
 
-    ; Make sure there is space in the task table
-    jsr find_proc_slot
-    cpx #$ffff
+    ; Make sure there is space in the task table        
+    Multitask_find_proc_slot
+    cmp #$ffff
     bne skip1
         lda #$0000
         sta r_retVal
         bra end
     skip1:
-    stx l_newProcSlot    
+    sta l_newProcSlot    
 
     ; remember current stack
-    tsx
-    stx l_currentStack
+    tsc
+    sta l_currentStack
 
     ; set the new stack
-    ldx p_stackAddress    
-    txs    
+    lda p_stackAddress    
+    tcs    
 
     ; setup the new stack
-    .A8                 ;  8 bit mode
-    .I8
-    sep #$30
+    mode8
+    lda p_processBank   ; Program Bank of new process
+    pha    
+    mode16         
+    lda p_processAddr   ; Address of new process
+    pha       
+    mode8
     lda #$30            ; Status for new process
     pha
     lda #$31            ; Native mode for new process
     pha         
-    .A16                ; 16 bit mode
-    .I16
-    rep #$30      
+    mode16
     pha                 ; A for new process
     phx                 ; X for new process
-    phy                 ; Y for new process    
-    .A8                 ; 8 bit mode
-    .I8
-    sep #$30
+    phy                 ; Y for new process
+    mode8        
     lda p_dataBank      ; Data Bank of new process
     pha
+    mode16 
     lda #$00            ; RAM/ROM banks for new process
-    pha
-    lda p_processBank   ; Program Bank of new process
     pha    
-    .A16                ; 16 bit mode
-    .I16
-    rep #$30            
-    lda p_processAddr   ; Address of new process
-    pha       
 
     ; Store where the stack pointer it in the task table
-    tsx
-    txa
-    ldx l_newProcSlot    
-    sta taskTable, x    
+    tsc    
+    ldy l_newProcSlot    
+    sta (l_pTaskTable), y        
     
     ; restore current stack
     ldx l_currentStack
@@ -129,15 +122,15 @@
 .proc mt_kill: near     
 
     ; 16 bit mode
-    .A16
-    .I16
-    rep #$30        
+    mode16     
 
     ; Save working registers
-    ProcPrefix    
+    ProcPrefix
+    ProcFar    
 
-    ; Create local variable    
-    SetLocalCount 0
+    ; Create local variable - Number in descending order 
+    DeclareLocalPointerWithValue l_pTaskTable, taskTable, 0   
+    SetLocalCount 1
 
     ; Declare parameters - reverse order
     DeclareParam p_ProcessId, 0 
@@ -150,13 +143,13 @@
     sei    
      
     ; Make sure task 0 cannot be killed
-    ldx p_ProcessId
-    cpx #$0000
+    ldy p_ProcessId
+    cpy #$0000
     beq skip
 
         ; Remove the task from the task table
         lda #$0000
-        sta taskTable, x
+        sta (l_pTaskTable), y
 
         ; Return true 
         lda #$ffff
@@ -189,15 +182,42 @@
 ; OUT:
 ;   X - Process ID
 .proc find_proc_slot: near
-    ldx #$0000
+
+    ; 16 bit mode
+    mode16    
+    
+    ; Save working registers
+    ProcPrefix 
+    ProcNear  
+    
+    ; Create local variable - Number in descending order    
+    DeclareLocalPointerWithValue l_pTaskTable, taskTable, 0
+    SetLocalCount 1
+
+    ; Declare parameters - reverse order        
+    DeclareParam r_retVal, 0
+
+    ; Setup stack frame
+    SetupStackFrame
+
+    ldy #$0000
     loop:
-        lda taskTable, x
+        lda (l_pTaskTable), y
         cmp #$00
         beq end
-        inx
-        cpx #max_tasks
+        iny
+        iny
+        cpy #max_tasks * 2
     bne loop
-    ldx #$ffff
+    ldy #$ffff
     end:
+
+    ; Store the results
+    sty r_retVal    
+
+    ; Exit the procedure
+    FreeLocals
+    ProcSuffix    
+
     rts
 .endproc
