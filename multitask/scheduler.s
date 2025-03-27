@@ -26,10 +26,9 @@ pTaskTable       =  $7e
 .segment "MULTITASK"
 
 ; This is a special procedure.  DO NOT use paramater passing.  This is the interrupt handler
-.proc mt_scheduler: near              
-
-    ; Save the state
-    php         ; Push Flags
+.proc mt_scheduler: near      
+            
+    ; Save the state    
     xce         ; Push emulator flag
     php
     modeNative
@@ -94,7 +93,7 @@ pTaskTable       =  $7e
 
     ; Acknowlege IRQ
     lda #1
-    sta VERA_ISR
+    sta VERA_ISR    
 
     ; 16 bit mode
     modeNative    
@@ -123,21 +122,11 @@ pTaskTable       =  $7e
         cmp #$0000
         beq nextTask   
 
-        ; Debug out pCurrentTask, Y and *pTaskTable + Y     
-        lda pCurrentTask
-        sta $0700
-        lda (pCurrentTask) 
-        sta $0702
-        lda pTaskTable
-        sta $0704
-        lda (pTaskTable), y
-        sta $0706
-        sty $0708
-
     ; SP = taskTable[currentTask]
-    ;tcs
-    lda #$0000
-    sta (pCurrentTask)
+    tcs
+    ;lda #$0000
+    ;sta (pCurrentTask)
+    ;.byte $db
 
     ; ** END Context Switch
 
@@ -149,8 +138,7 @@ pTaskTable       =  $7e
     plx         ; Pull X
     pla         ; Pull A
     plp         ; Emulator back to original
-    xce
-    plp         ; Pull Status
+    xce    
     
     ; Return from interrupt
     rti

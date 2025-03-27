@@ -16,16 +16,24 @@
     modeNative    
     mode16   
 
-    ; ** Initialize multitasking engine
-    Multitask_Init
-
     ; ** Start a new process
-    Multitask_Start thread, #$0000, proc_stack, ^D
+    ;Multitask_Start thread, #$0000, proc_stack, ^D
 
-    ; 8 bit mode
+    ; ** Initialize multitasking engine
+    Multitask_Init        
+
+    ;.byte $db
+    mode8    
+    loop:
+        ;.byte $db    
+        lda #$41
+        jsr $ffd2
+    bra loop
+    
+    ; 8 bit mode    
     mode8    
     modeEmulation
-
+    
     rts
 .endproc
 
@@ -34,6 +42,10 @@
         lda $07fd
         inc
         sta $07fd
+        mode8
+        lda #$42
+        jsr $ffd2
+        mode16        
     bra top
     rtl
 .endproc

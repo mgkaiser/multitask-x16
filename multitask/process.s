@@ -65,7 +65,7 @@
     sta l_currentStack
 
     ; set the new stack
-    lda p_stackAddress    
+    lda p_stackAddress      
     tcs    
 
     ; setup the new stack
@@ -73,28 +73,26 @@
     lda p_processBank   ; Program Bank of new process
     pha    
     mode16         
-    lda p_processAddr   ; Address of new process
-    pha       
-    mode8
-    lda #$30            ; Status for new process
+    lda p_processAddr   ; Address of new process    
     pha
-    lda #$31            ; Native mode for new process
-    pha         
+    mode8
+    lda #$30    
+    pha                 ; Flags    
+    lda #$30
+    pha                 
     mode16
     pha                 ; A for new process
     phx                 ; X for new process
-    phy                 ; Y for new process
-    mode8        
+    phy                 ; Y for new process    
     lda p_dataBank      ; Data Bank of new process
-    pha
-    mode16 
+    pha    
     lda #$00            ; RAM/ROM banks for new process
     pha    
 
     ; Store where the stack pointer it in the task table
     tsc    
     ldy l_newProcSlot    
-    sta (l_pTaskTable), y        
+    sta (l_pTaskTable), y            
     
     ; restore current stack
     ldx l_currentStack

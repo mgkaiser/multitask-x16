@@ -43,14 +43,7 @@
     DeclareParam r_retVal, 0  
 
     ; Setup stack frame
-    SetupStackFrame
-
-    lda l_pCurrentTask    
-    sta $0700
-    lda l_pMTScheduler
-    sta $0702
-    lda l_pOldIrq
-    sta $0704
+    SetupStackFrame    
 
     ; interrupts off
     sei        

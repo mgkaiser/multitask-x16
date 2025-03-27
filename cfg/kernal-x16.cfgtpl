@@ -1,0 +1,27 @@
+MEMORY {
+    #include "x16.cfginc"
+
+    SIGNATURE: start = $c000, size = $0010, fill = yes, fillval=$00;
+    KERNAL: start = $c010, size = $3fd0, fill = yes, fillval=$ea;
+    VECTORS_816: start = $ffe0, size = $0010, fill = yes, fillval=$ee;
+    VECTORS_02: start = $fff0, size = $0010, fill = yes, fillval=$ff;
+}
+
+SEGMENTS {
+    ZPKERNAL:       load = ZPKERNAL,    type = zp;    
+    ZPDOS:          load = ZPDOS,       type = zp;
+    KVAR:           load = KVAR,        type = bss;
+    I2CMUTEX:       load = KVAR,        type = bss;
+    KVAR2:          load = KVAR2,       type = bss;
+    KVECTORS:       load = KVECTORS,    type = bss;
+
+    KERNAL:         load = KERNAL,      type = ro;
+    CODE:           load = KERNAL,      type = ro;
+    SCREEN:         load = KERNAL,      type = ro;
+    I2C:            load = KERNAL,      type = ro;
+    MACHINE:        load = KERNAL,      type = ro;
+    CHARPET:        load = KERNAL,      type = ro;
+    PALETTE:        load = KERNAL,      type = ro;
+    VECTORS_816:    load = VECTORS_816, type = ro;
+    VECTORS_02:     load = VECTORS_02,  type = ro;
+}

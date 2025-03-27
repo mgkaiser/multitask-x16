@@ -20,13 +20,22 @@ ASFLAGS     +=  $(VERSION_DEFINE)
 ASFLAGS     += -g
 # all files are allowed to use 65SC02 features
 ASFLAGS     += --cpu 65SC02
-
+ASFLAGS     += --relax-checks
 BUILD_DIR=build/x16
 EMU_DIR1=../x16-emulator
 EMU_DIR2=/mnt/c/x16emu_win64-r48/sdcard/sdcard_root/
 
 CFG_DIR=$(BUILD_DIR)/cfg
 
+KERNAL_SOURCES = \
+	kernal/main.s \
+	kernal/vectors.s \
+	kernal/declare.s \
+	kernal/drivers/x16/x16.s \
+	kernal/drivers/x16/screen.s \
+	kernal/drivers/x16/i2c.s \
+	charset/petscii.s
+	
 MULTITASK_SOURCES = \
 	multitask/main.s \
 	multitask/init.s \
@@ -47,13 +56,21 @@ GENERIC_DEPS = \
 	inc/65c816.inc \
 	kernsup/kernsup.inc
 	
+KERNAL_DEPS = \
+	$(GENERIC_DEPS)
+
 MULTITASK_DEPS = \
-	$(GENERIC_DEPS) \
+	$(GENERIC_DEPS)
+
+MULTITEST_DEPS = \
+	$(GENERIC_DEPS)
 
 MULTITASK_OBJS  = $(addprefix $(BUILD_DIR)/, $(MULTITASK_SOURCES:.s=.o))
 MULTITEST_OBJS  = $(addprefix $(BUILD_DIR)/, $(MULTITEST_SOURCES:.s=.o))
+KERNAL_OBJS  	= $(addprefix $(BUILD_DIR)/, $(KERNAL_SOURCES:.s=.o))
 
 BANK_BINS = \
+	$(BUILD_DIR)/kernal.bin \
 	$(BUILD_DIR)/multitask.bin \
 	$(BUILD_DIR)/multitest.bin
 
@@ -66,8 +83,10 @@ all: $(BANK_BINS) $(ROM_LABELS) $(ROM_LST)
 install: all
 	cp $(BUILD_DIR)/multitask.bin $(EMU_DIR1)/multitask.bin
 	cp $(BUILD_DIR)/multitest.bin $(EMU_DIR1)/multitest.bin
+	cp $(BUILD_DIR)/kernal.bin $(EMU_DIR1)/kernal.bin
 	cp $(BUILD_DIR)/multitask.bin $(EMU_DIR2)/multitask.bin
 	cp $(BUILD_DIR)/multitest.bin $(EMU_DIR2)/multitest.bin
+	cp $(BUILD_DIR)/kernal.bin $(EMU_DIR2)/kernal.bin
 
 clean:
 	rm -f $(GIT_SIGNATURE)
@@ -89,6 +108,12 @@ $(BUILD_DIR)/%.o: %.s
 	@mkdir -p $$(dirname $@)
 	$(AS) $(ASFLAGS) -l $(BUILD_DIR)/$*.lst $< -o $@
 
+# Bank 0 : KERNAL
+$(BUILD_DIR)/kernal.bin: $(GIT_SIGNATURE) $(KERNAL_OBJS) $(KERNAL_DEPS) $(CFG_DIR)/kernal-x16.cfg	
+	@mkdir -p $$(dirname $@)
+	$(LD) -C $(CFG_DIR)/kernal-x16.cfg $(KERNAL_OBJS) -o $@ -m $(BUILD_DIR)/kernal.map -Ln $(BUILD_DIR)/kernal.sym 		
+	./scripts/relist.py $(BUILD_DIR)/kernal.map $(BUILD_DIR)/kernal
+
 # Golden RAM : MULTITASK
 $(BUILD_DIR)/multitask.bin: $(GIT_SIGNATURE) $(MULTITASK_OBJS) $(MULTITASK_DEPS) $(CFG_DIR)/multitask-x16.cfg	
 	@mkdir -p $$(dirname $@)
@@ -102,10 +127,12 @@ $(BUILD_DIR)/multitest.bin: $(GIT_SIGNATURE) $(MULTITEST_OBJS) $(MULTITEST_DEPS)
 	./scripts/relist.py $(BUILD_DIR)/multitest.map $(BUILD_DIR)/multitest	
 
 $(BUILD_DIR)/rom_labels.h: $(BANK_BINS)
-	./scripts/symbolize.sh 0 build/x16/multitask.sym   > $@		
-	./scripts/symbolize.sh 1 build/x16/multitest.sym   >> $@		
+	./scripts/symbolize.sh 0 build/x16/kernal.sym   	> $@		
+	./scripts/symbolize.sh 1 build/x16/multitask.sym   >> $@		
+	./scripts/symbolize.sh 2 build/x16/multitest.sym   >> $@		
 
 $(BUILD_DIR)/rom_lst.h: $(BANK_BINS)
-	./scripts/trace_lst.py 0 `find build/x16/multitask/ -name \*.rlst`     > $@
-	./scripts/trace_lst.py 1 `find build/x16/multitest/ -name \*.rlst`     >> $@
+	./scripts/trace_lst.py 0 `find build/x16/kernal/ -name \*.rlst`     	> $@
+	./scripts/trace_lst.py 1 `find build/x16/multitask/ -name \*.rlst`     >> $@
+	./scripts/trace_lst.py 2 `find build/x16/multitest/ -name \*.rlst`     >> $@
 	
