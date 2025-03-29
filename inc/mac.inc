@@ -319,6 +319,11 @@
     tcd
 .endmacro
 
+.macro RestoreStackFrame
+	lda #$0000
+	tcd
+.endmacro
+
 .macro DeclareLocal lname, position
 	lname = (position * 2) + 1	
 	pha
@@ -367,7 +372,7 @@
 ; PER = label				param is an offset, but pushes the resolved value onto the stack
 ; PEA = Absloute Value		param is the actual 16-bit value to push on the stack
 ; PEI = Pointer 			param is a DP address to be used as a pointer.  The value it points to is pushed on the stack
-.macro SetParam arg
+.macro SetParam arg	
 	.if (.match (.left (1, {arg}), #))
 		.out "-- PEA --"
 		.byte $f4
@@ -386,14 +391,24 @@
 					.out "-- D --"
 					tdc
 					pha
-				.else
+				.else																				
 					.out "-- PER --"
-					per arg				
+					per arg														
 				.endif
 			.endif
 		.endif
 	.endif
 .endmacro
+
+.macro SetParamL arg
+	.out "-- f:PEA --"
+	.byte $f4
+	.byte ^(.right (.tcount ({arg})-1, {arg}))		
+	.byte $00
+	.byte $f4
+	.byte <(.right (.tcount ({arg})-1, {arg}))		
+	.byte >(.right (.tcount ({arg})-1, {arg}))	
+.endmacro	
 
 .macro SetRetVal
 	pha
@@ -434,4 +449,16 @@
 .macro modeNative
 	clc
     xce    
+.endmacro
+
+.macro BEGIN_DP_ZERO		
+	tdc
+	pha
+	lda #$0000
+	tcd	
+.endmacro
+
+.macro END_DP_ZERO
+	pla
+	tcd
 .endmacro

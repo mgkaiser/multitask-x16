@@ -31,6 +31,8 @@ KERNAL_SOURCES = \
 	kernal/main.s \
 	kernal/vectors.s \
 	kernal/declare.s \
+	kernal/interrupt.s \
+	kernal/pipes.s \
 	kernal/drivers/x16/x16.s \
 	kernal/drivers/x16/screen.s \
 	kernal/drivers/x16/i2c.s \
@@ -103,7 +105,6 @@ $(BUILD_DIR)/%.cfg: %.cfgtpl
 	@mkdir -p $$(dirname $@)
 	$(CC) -E $< -o $@
 
-# TODO: Need a way to control lst file generation through a configuration variable.
 $(BUILD_DIR)/%.o: %.s
 	@mkdir -p $$(dirname $@)
 	$(AS) $(ASFLAGS) -l $(BUILD_DIR)/$*.lst $< -o $@

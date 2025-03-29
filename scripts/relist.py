@@ -7,7 +7,6 @@ import re
 from typing import *
 import glob
 
-# TODO: need ability to override this from environment or cmd line
 FAIL_ON_WARNING = True
 warning_flag = False
 
@@ -35,7 +34,6 @@ class Module:
         return self.segments[segment_name].offset
 
 # Scan the map file for modules and segments. Note that module names do not uniquely identify a module. See scan_lst below.
-# TODO: It's probably more efficient for scan map to return a map of all modules, not just the one we're interested during
 #       this iteration.
 def scan_map(map_filename: str, lst_filename:str, segment_map:Dict[str,Segment], module_map:Dict[str,Module]):
     segment_matcher = re.compile(r"^([A-Z][A-Z0-9_]*) *([0-9A-F]{6})  ([0-9A-F]{6})  ([0-9A-F]{6})  ([0-9A-F]{5})$", re.IGNORECASE)
@@ -166,8 +164,7 @@ def relst(lst_filename: str, module: Module, rlst_file: FileIO) -> None:
                 # Only update lst-file-like lines
                 lst_match = lst_matcher.match(lst_part)
                 if lst_match:
-                    # Found a normal lst file line, replace its relative offset with the absolute offset.
-                    # TODO: This labels comment blocks of functions with the address of the first instruction of the
+                    # Found a normal lst file line, replace its relative offset with the absolute offset.                    
                     #       function. It looks kind of ugly. Perhaps if the offset of the current line hasn't changed
                     #       from the previous line, we should just scrub the offset altogether to improve readability.
                     location = int(lst_match.group(1),16) + cur_segment.offset
@@ -209,8 +206,7 @@ def process(map_filename, lst_filename):
             warning_flag = True
         else:
             print(f"INFO: we're going to go with {module_name}.", file=sys.stderr)
-    # Add the segment base address to the offset of each segment within the module
-    # TODO: Would be better to deepcopy the module and update that instead of changing the one in the map.
+    # Add the segment base address to the offset of each segment within the module    
     module = map_modules[module_name]
     for name,segment in module.segments.items():
         # print(f"segment name = {segment.name}, size = {segment.size}, offset = {segment.offset:X} + {map_segments[name].offset:X}")
@@ -221,8 +217,7 @@ def process(map_filename, lst_filename):
         # print(f"Writing relisting to {rlst_filename}")
         relst(lst_filename, module, rlst_file)
 
-if __name__ == "__main__":
-    # Note: no command line safety here - don't make a mistake!
+if __name__ == "__main__":    
     map_filename = sys.argv[1]
     lst_path = sys.argv[2]
     if lst_path.endswith(".lst"):

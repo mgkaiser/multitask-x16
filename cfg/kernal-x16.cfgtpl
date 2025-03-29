@@ -1,25 +1,33 @@
 MEMORY {
-    #include "x16.cfginc"
+    /* Zero Page */
+    ZPKERNAL:       start = $0080, size = $0011;                            # KERNAL
 
-    SIGNATURE: start = $c000, size = $0010, fill = yes, fillval=$00;
-    KERNAL: start = $c010, size = $3fd0, fill = yes, fillval=$ea;
-    VECTORS_816: start = $ffe0, size = $0010, fill = yes, fillval=$ee;
-    VECTORS_02: start = $fff0, size = $0010, fill = yes, fillval=$ff;
+    /* $0200 - $02ff */
+    KVAR:           start = $0200, size = $0095;                            # KERNAL
+    I2CMUTEX:       start = $02C0, size = $0001;                            # I2C MUTEX FLAG
+
+    /* $0300 - $03ff */
+    KVAR2:          start = $0300, size = $0100;                            # KERNAL: screen editor state
+
+    SIGNATURE:      start = $c000, size = $0010, fill = yes, fillval=$00;
+    KERNAL:         start = $c010, size = $3fd0, fill = yes, fillval=$ea;
+    VECTORS_816:    start = $ffe0, size = $0010, fill = yes, fillval=$ee;
+    VECTORS_02:     start = $fff0, size = $0010, fill = yes, fillval=$ff;
 }
 
 SEGMENTS {
-    ZPKERNAL:       load = ZPKERNAL,    type = zp;    
-    ZPDOS:          load = ZPDOS,       type = zp;
-    KVAR:           load = KVAR,        type = bss;
-    I2CMUTEX:       load = KVAR,        type = bss;
+    ZPKERNAL:       load = ZPKERNAL,    type = zp;        
+    KVAR:           load = KVAR,        type = bss;    
     KVAR2:          load = KVAR2,       type = bss;
-    KVECTORS:       load = KVECTORS,    type = bss;
-
+    INTERRUPT_DATA: load = KVAR2,       type = bss;
+    I2CMUTEX:       load = I2CMUTEX,    type = bss;    
     KERNAL:         load = KERNAL,      type = ro;
     CODE:           load = KERNAL,      type = ro;
     SCREEN:         load = KERNAL,      type = ro;
     I2C:            load = KERNAL,      type = ro;
     MACHINE:        load = KERNAL,      type = ro;
+    INTERRUPT:      load = KERNAL,      type = ro;
+    PIPES:          load = KERNAL,      type = ro;
     CHARPET:        load = KERNAL,      type = ro;
     PALETTE:        load = KERNAL,      type = ro;
     VECTORS_816:    load = VECTORS_816, type = ro;

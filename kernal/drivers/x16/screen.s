@@ -3,6 +3,8 @@
 ;----------------------------------------------------------------------
 ; (C)2019 Michael Steil, License: 2-clause BSD
 
+.p816
+
 .include "io.inc"
 .include "mac.inc"
 .include "regs.inc"
@@ -18,46 +20,19 @@
 .export screen_set_position
 .export screen_get_position
 
-.importzp tmp2
-
 .import charpet
 
-.segment "KVAR"
-pnt:	.res 2           ;$D1 pointer to row
-
 .segment "KVAR2" ; more KERNAL vars
-ldtb1:	.res 8       ;end of line flags, one bit per line
+
 ; Screen
 ;
-.export mode; [ps2kbd]
 .export data; [cpychr]
 .export color;
-mode:	.res 1           ;    bit7=1: charset locked, bit6=1: ISO
-                         ;    bits3-0: current charset
-gdcol:	.res 1           ;    original color before cursor
-autodn:	.res 1           ;    auto scroll down flag(=0 on,<>0 off)
-lintmp:	.res 1           ;    temporary for line index
+
+pnt:	.res 2           ;$D1 pointer to row
 color:	.res 1           ;    activ color nybble
-rvs:	.res 1           ;$C7 rvs field on flag
-indx:	.res 1           ;$C8
-lsxp:	.res 1           ;$C9 x pos at start
-lstp:	.res 1           ;$CA
-blnsw:	.res 1           ;$CC cursor blink enab
-blnct:	.res 1           ;$CD count to toggle cur
-gdbln:	.res 1           ;$CE char before cursor
-blnon:	.res 1           ;$CF on/off blink flag
-crsw:	.res 1           ;$D0 input vs get flag
-pntr:	.res 1           ;$D3 pointer to column
-qtsw:	.res 1           ;$D4 quote switch
-lnmx:	.res 1           ;$D5 40/80 max positon
-tblx:	.res 1           ;$D6
 data:	.res 1           ;$D7
-insrt:	.res 1           ;$D8 insert mode flag
 llen:	.res 1           ;$D9 x resolution
-nlines:	.res 1           ;$DA y resolution
-nlinesp1:	.res 1          ;    X16: y resolution + 1
-nlinesm1:	.res 1          ;    X16: y resolution - 1
-verbatim:	.res 1
 
 .segment "SCREEN"
 
@@ -372,20 +347,34 @@ screen_set_charset:
 	jsr inicpy	
 
 cpycustom:
-	; MGK: Make sure DP is set before use
-	stx tmp2
-	sty tmp2+1
+	
+	; Set Direct Page inside the stack, create a local
+	mode16	
+	SetLocalCount 1
+	DeclareLocal pCharSet, 0
+	SetupStackFrame	
+	mode8
+
+	stx pCharSet
+	sty pCharSet+1
 	ldx #8
 	ldy #0	
 @l1:	
-	lda (tmp2) ,y	
+	lda (pCharSet) ,y	
 	;eor data
 	sta VERA_DATA0
 	iny
 	bne @l1	
-	inc tmp2+1	
+	inc pCharSet+1	
 	dex
 	bne @l1
+
+	; Cleanup local, DP back to $0000
+	mode16
+	FreeLocals
+	RestoreStackFrame
+	mode8
+
 	rts
 
 inicpy:
@@ -397,8 +386,7 @@ inicpy:
 	ldx #$10 | ^charset_addr
 	stx VERA_ADDR_H
 	plx
-	stz data
-	stz tmp2
+	stz data	
 	rts	
 
 upload_default_palette:

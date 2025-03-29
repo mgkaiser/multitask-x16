@@ -1,14 +1,19 @@
 .include "mac.inc"
+.include "pipes.inc"
 
-.export tmp
-.export tmp2
+.export pipe_conout
+.export pipe_kbdin
+
+;.export tmp
+;.export tmp2
 
 .segment "ZPKERNAL"
-    tmp:    .byte $00, $00    
-    tmp2:   .byte $00, $00
+;    tmp:    .byte $00, $00    
+;    tmp2:   .byte $00, $00
 
 .segment "KVAR"
-
-.segment "KVECTORS";rem kernal/os indirects(20)
+    PIPE_SIZE = .sizeof(pipe)
+    pipe_conout:    .res PIPE_SIZE
+    pipe_kbdin:     .res PIPE_SIZE
 
 .segment "KVAR2"

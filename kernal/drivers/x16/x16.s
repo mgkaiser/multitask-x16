@@ -11,23 +11,7 @@
 
 .export ioinit
 .export iokeys
-.export emulator_get_data
 .export vera_wait_ready
-;.export call_audio_init
-;.export boot_cartridge
-
-.import ps2_init
-;.import serial_init
-;.import entropy_init
-;.import clklo
-;.import jsrfar
-;.import fetvec
-;.import fetch
-;.import softclock_timer_get
-;.import kbdbuf_get_modifiers
-;.importzp tmp2
-
-MODIFIER_SHIFT = 1
 
 .segment "MACHINE"
 
@@ -52,25 +36,6 @@ iokeys:
 	lda #1
 	sta VERA_IEN    ;VERA VBLANK IRQ for 60 Hz
 	rts
-
-;---------------------------------------------------------------
-; Get some data from the emulator
-;
-; Function:  Detect an emulator and get config information.
-;            For now, this is the keyboard layout.
-;---------------------------------------------------------------
-emulator_get_data:
-	lda $9fbe       ;emulator detection
-	cmp #'1'
-	bne @1
-	lda $9fbf
-	cmp #'6'
-	bne @1
-	lda $9fbd       ;emulator keyboard layout
-	bra @2
-@1:	lda #0          ;fall back to US layout
-@2:	rts
-
 
 ;---------------------------------------------------------------
 ; Wait for VERA to be ready

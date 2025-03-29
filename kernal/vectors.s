@@ -3,18 +3,20 @@
 .include "mac.inc"
 
 .import vec_reset_02
+.import mt_scheduler
+
 
 .segment "SIGNATURE"
 
 .segment "VECTORS_816"
 .word $0001             ; Reserved
 .word $0002             ; Reserved
-.word $0003             ; COP
+.word $0003             ; COP           -- Hook this as API handler
 .word $0004             ; BRK
 .word $0005             ; ABORT
 .word $0006             ; NMI
 .word $0007             ; Reserved
-.word $0008             ; IRQ
+.word mt_scheduler      ; IRQ
 
 .segment "VECTORS_02"
 .word $0011             ; Reserved
