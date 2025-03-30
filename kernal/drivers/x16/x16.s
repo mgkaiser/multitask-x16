@@ -6,7 +6,6 @@
 .include "io.inc"
 
 ; for initializing the audio subsystems
-.include "banks.inc"
 .include "audio.inc"
 
 .export ioinit

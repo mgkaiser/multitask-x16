@@ -4,7 +4,6 @@
 .include "multitask.inc"
 .include "regs.inc"
 .include "io.inc"
-.include "kernal.inc"
 
 ; Interrupt Sources
 INT_VSYNC   = %00000001

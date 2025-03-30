@@ -1,5 +1,3 @@
-.include "fb.inc"
-
 ;
 ; C64 KERNAL API
 ;

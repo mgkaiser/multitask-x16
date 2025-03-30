@@ -51,12 +51,8 @@ GENERIC_DEPS = \
 	inc/kernal.inc \
 	inc/mac.inc \
 	inc/io.inc \
-	inc/fb.inc \
-	inc/banks.inc \
 	inc/multitask.inc \
-	inc/regs.inc \
-	inc/65c816.inc \
-	kernsup/kernsup.inc
+	inc/regs.inc
 	
 KERNAL_DEPS = \
 	$(GENERIC_DEPS)
