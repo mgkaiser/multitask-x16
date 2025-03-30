@@ -388,9 +388,8 @@
 				pha
 			.else
 				.if (.match (.left (2, {arg}), ^D))
-					.out "-- D --"
-					tdc
-					pha
+					.out "-- D --"					
+					phd
 				.else																				
 					.out "-- PER --"
 					per arg														
@@ -411,6 +410,7 @@
 .endmacro	
 
 .macro SetRetVal
+	.out "-- SetRetVal --"
 	pha
 .endmacro
 
@@ -461,4 +461,12 @@
 .macro END_DP_ZERO
 	pla
 	tcd
+.endmacro
+
+.macro BEGIN_CRITICAL_SECTION
+	sei
+.endmacro
+
+.macro END_CRITICAL_SECTION
+	cli
 .endmacro

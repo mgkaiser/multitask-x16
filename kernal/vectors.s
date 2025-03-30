@@ -11,7 +11,7 @@
 .segment "VECTORS_816"
 .word $0001             ; Reserved
 .word $0002             ; Reserved
-.word $0003             ; COP           -- Hook this as API handler
+.word mt_scheduler      ; COP           -- Hook this as API handler
 .word $0004             ; BRK
 .word $0005             ; ABORT
 .word $0006             ; NMI

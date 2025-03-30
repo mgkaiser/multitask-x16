@@ -6,8 +6,7 @@
 .include "io.inc"
 .include "kernal.inc"
 
-.export mt_scheduler
-.export mt_init
+.export mt_scheduler, mt_init, mt_start
 
 .segment "INTERRUPT_DATA"
     currentTask: 	.word $0000     ; Current task	
@@ -15,11 +14,29 @@
 
 .segment "INTERRUPT"
 
-;# TODO: Clean up to use params and stack frame (small exceptiob because currentTask and taskTable are "global")
-;# TODO: Use LONG to address task table and current task
+; mt_init - Start task scheduler
+; (Use Native Mode)
+; IN:
+;   None
+; OUT:
+;   None
 .proc mt_init: near  
 
-    mode16
+    ; 16 bit mode
+    mode16  
+
+    ; Save working registers
+    ProcPrefix 
+    ProcFar 
+
+    ; Create local variable - Number in descending order - Number in descending order             
+    SetLocalCount 0
+
+    ; Declare parameters - reverse order        
+    DeclareParam r_retVal, 0  
+
+    ; Setup stack frame
+    SetupStackFrame    
 
     ; Current task is 0
     lda #$0000
@@ -37,12 +54,24 @@
         inx 
         inx
         cpx# max_tasks*2
-    bne @1
+    bne @1    
+
+    ; Exit the procedure
+    FreeLocals
+    ProcSuffix        
+
+    ; 8 bit mode
     mode8
 
-    rts
+    rtl
+
 .endproc
 
+; mt_scheduler - The scheduler itself.  DO NOT CALL DIRECTLY
+; IN:
+;   None
+; OUT:
+;   None
 .proc mt_scheduler: near      
             
     ; Save the state        
@@ -102,7 +131,7 @@
         cmp #$0000
 
     beq nextTask   
-
+    
     ; Make the next task active
     tcs    
 
@@ -120,4 +149,146 @@
     ; Return from interrupt
     rti
 
+.endproc
+
+; mt_start - Start a new process
+; (Use Native Mode)
+; CALLING CONVENTION: Stack
+; IN:
+;   address of process
+;   bank of process
+;   stack address of process (must be in 1st 64k)
+;   data bank of process
+; OUT:
+;   Process ID (0 = fail)
+.proc mt_start: near
+        
+    ; 16 bit mode
+    mode16    
+
+    ; Save working registers
+    ProcPrefix   
+    ProcFar 
+
+    ; Create local variable - Number in descending order    
+    DeclareLocal l_currentStack, 1
+    DeclareLocal l_newProcSlot, 0
+    SetLocalCount 2
+
+    ; Declare parameters - reverse order
+    DeclareParam p_dataBank, 0
+    DeclareParam p_stackAddress, 1
+    DeclareParam p_processAddr, 2       ; Skip 1 because long    
+    DeclareParam r_retVal, 4
+    
+    ; Setup stack frame
+    SetupStackFrame
+            
+    ; interrupts off
+    sei            
+
+    ; Make sure there is space in the task table            
+    Multitask_find_proc_slot    
+    cmp #$ffff
+    bne skip1
+        lda #$0000
+        sta r_retVal
+        bra end
+    skip1:
+    sta l_newProcSlot   
+
+    ; remember current stack
+    tsc
+    sta l_currentStack 
+    
+    ; set the new stack
+    lda p_stackAddress      
+    tcs    
+
+    ; setup the new stack
+    mode8
+    lda p_processAddr + 2   ; Program Bank of new process
+    pha    
+    mode16         
+    lda p_processAddr       ; Address of new process    
+    pha
+    mode8
+    lda #$30    
+    pha                 ; Flags                       
+    mode16
+    pha                 ; A for new process
+    phx                 ; X for new process
+    phy                 ; Y for new process    
+    lda p_dataBank      ; Data Bank of new process
+    pha    
+    lda #$00            ; RAM/ROM banks for new process
+    pha    
+
+    ; Store where the stack pointer it in the task table
+    tsc    
+    ldy l_newProcSlot    
+    sta taskTable, y      
+
+    ; restore current stack
+    ldx l_currentStack
+    txs              
+
+    end:
+
+    ; interrupts on
+    cli
+    
+    ; Exit the procedure
+    FreeLocals
+    ProcSuffix    
+    
+    rtl
+.endproc
+
+
+; find_proc_slot - Find the next available processor slot
+; (Use Native Mode)
+; CALLING CONVENTION: Fastcall
+; IN:
+;   none
+; OUT:
+;   X - Process ID
+.proc find_proc_slot: near
+
+    ; 16 bit mode
+    mode16    
+    
+    ; Save working registers
+    ProcPrefix 
+    ProcNear  
+    
+    ; Create local variable - Number in descending order        
+    SetLocalCount 0
+
+    ; Declare parameters - reverse order        
+    DeclareParam r_retVal, 0
+
+    ; Setup stack frame
+    SetupStackFrame
+
+    ldy #$0000
+    loop:
+        lda taskTable, y
+        cmp #$00
+        beq end
+        iny
+        iny
+        cpy #max_tasks * 2
+    bne loop
+    ldy #$ffff
+    end:
+
+    ; Store the results
+    sty r_retVal    
+
+    ; Exit the procedure
+    FreeLocals
+    ProcSuffix    
+
+    rts
 .endproc

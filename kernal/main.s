@@ -2,7 +2,7 @@
 
 .include "mac.inc"
 .include "io.inc"
-;.include "multitask.inc"
+.include "multitask.inc"
 .include "pipes.inc"
 
 .export vec_reset_02
@@ -19,13 +19,17 @@
 .import i2c_write_first_byte, i2c_write_next_byte, i2c_write_stop
 .import i2c_restore, i2c_mutex
 
-.import mt_init
+.import mt_init, mt_start
 
 .import pipe_init, pipe_push, pipe_pop
 .import pipe_conout, pipe_kbdin
 
 .segment "KVAR"
-character: .byte $00
+character:  .byte $00
+character2: .byte $00
+
+.res $40 
+proc_stack: 
 
 .segment "KERNAL"
 
@@ -61,16 +65,18 @@ vec_reset_02:
     ; Initialize pages
     stz $00
     stz $01
+
+    mode16
     
-    ; Start Interrupts
-    jsr mt_init   
+    ; Start Interrupts    
+    Multitask_Init   
     jsr iokeys     
     cli
 
-    ; Init Pipes    
-    mode16
+    ; Init Pipes        
     Pipe_Init pipe_conout
     Pipe_Init pipe_kbdin    
+    
     mode8
 
     ; Clear the screen
@@ -80,27 +86,33 @@ vec_reset_02:
         inx
         cpx #60
     bne @1    
+
+    ; # TODO: Trace this through    
+    Multitask_Start thread, #proc_stack, ^D    
     
+    mode8
     ldx #$01
     jsr screen_set_position
-    lda #2
+    lda #1
     ldx #$61
     ldy #$01
     jsr screen_set_char_color
         
-    lda #15    
-    iny
-    jsr screen_set_char_color
-        
-    lda #15
-    iny
-    jsr screen_set_char_color
-    
     lda #2    
     iny
     jsr screen_set_char_color
+        
+    lda #3
+    iny
+    jsr screen_set_char_color
+    
+    lda #4    
+    iny
+    jsr screen_set_char_color
 
-    loop:
+    @2:
+
+        BEGIN_CRITICAL_SECTION
 
         ldx #$03
         jsr screen_set_position
@@ -120,10 +132,40 @@ vec_reset_02:
         jsr screen_set_position
         pla
         cmp #$00
-        beq loop
+        beq @3
+            ldx #$61
+            ldy #$01
+            jsr screen_set_char_color
+        @3:
+        
+        END_CRITICAL_SECTION
+
+        cop #$00        
+        
+    jmp @2    
+
+.proc thread: near
+    @1:
+        lda $07fd
+        inc
+        sta $07fd
+        mode8
+
+        BEGIN_CRITICAL_SECTION
+
+        ldx #$06
+        jsr screen_set_position
+        lda character2
+        inc 
+        sta character2       
         ldx #$61
         ldy #$01
-        jsr screen_set_char_color        
-        
-    jmp loop    
+        jsr screen_set_char_color
 
+        END_CRITICAL_SECTION
+
+        cop #$00
+        mode16        
+    bra @1
+    rtl
+.endproc

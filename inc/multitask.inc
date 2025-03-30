@@ -12,10 +12,10 @@ max_tasks       = $20
     FreeParams 1            ; Pop all the params off leaving return value in A  
 .endmacro
 
-.macro Multitask_Start procAddr, procBank, procStack, dataBank
-    SetRetVal               ; Return Value                
-    SetParam procAddr       ; Address of the process we are starting      
-    SetParam procBank       ; Bank of the process we are starting    
+.macro Multitask_Start procAddr, procStack, dataBank
+    .out "Multitask_Start"
+    SetRetVal               ; Return Value       
+    SetParamL f:procAddr    ; pointer to process                                   - Counts a 2 because long                 
     SetParam procStack      ; Stack for the process we are starting    
     SetParam dataBank       ; Databank for the process we are starting
     jsl mt_start            ; Start the process

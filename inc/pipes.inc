@@ -5,6 +5,7 @@
 .endstruct
 
 .macro Pipe_Init pPipe
+    .out "Pipe_Init"
     SetRetVal               ; Return Value                
     SetParamL f:pPipe       ; pointer to pipe       - Counts a 2 because long
     jsl pipe_init           ; Kill the process
