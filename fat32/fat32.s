@@ -1397,7 +1397,7 @@ unmount:
 ;
 ; * c=0: failure; sets errno
 ;-----------------------------------------------------------------------------
-; TODO: even in the error case, the context must always been set, otherwise
+;# TODO: even in the error case, the context must always been set, otherwise
 ; we are stuck.
 fat32_set_context:
 	stz fat32_errno
@@ -3942,7 +3942,7 @@ fat32_seek:
 	dex
 	bne @1
 
-	; TODO: It would be a significant optimization to fast forward from
+	;# TODO: It would be a significant optimization to fast forward from
 	;       the current position, it is lower than the target position.
 
 @2:	; Go to start cluster

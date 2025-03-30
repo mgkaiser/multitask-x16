@@ -1,5 +1,7 @@
 .p816
 
+max_tasks       = $20
+
 .include "mac.inc"
 .include "multitask.inc"
 .include "regs.inc"

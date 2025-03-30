@@ -6,11 +6,28 @@
 .include "io.inc"
 .include "kernal.inc"
 
+; Interrupt Sources
+INT_VSYNC   = %00000001
+INT_LINE    = %00000010
+INT_SPRCOL  = %00000100
+INT_AUDIO   = %00001000
+
 .export mt_scheduler, mt_init, mt_start
 
 .segment "INTERRUPT_DATA"
+
+    ;# TODO: More than 32 tasks?
+    max_tasks       = $20
+
     currentTask: 	.word $0000     ; Current task	
 	taskTable:      .res $40		; 64 bytes to hold task table.
+
+.segment "INTERRUPT_VEC"
+
+    vec_vsync:  .dword $000000
+    vec_line:   .dword $000000    
+    vec_sprcol: .dword $000000    
+    vec_audio:  .dword $000000    
 
 .segment "INTERRUPT"
 
@@ -56,6 +73,12 @@
         cpx# max_tasks*2
     bne @1    
 
+    ; Setup vectors    
+    set_int_vec mt_dummy_vec, vec_vsync    
+    set_int_vec mt_dummy_vec, vec_line    
+    set_int_vec mt_dummy_vec, vec_sprcol
+    set_int_vec mt_dummy_vec, vec_audio   
+
     ; Exit the procedure
     FreeLocals
     ProcSuffix        
@@ -86,21 +109,62 @@
     ; RAM and ROM banks to 0
     stz $00
     stz $01
-    
-    ; Do something to prove interrupt is alive
-    lda $07ff
-    inc
-    sta $07ff
+        
+    ;; BEGIN: Break out and dispatch the various kinds of IRQ    
+    ;;# TODO: Maybe interrupts should be "special tasks" that launch on their trigger and run to completion?    
 
-    ;; BEGIN: Break out and dispatch the various kinds of IRQ
+    mode8
 
-    ; Acknowlege IRQ
-    lda #1
-    sta VERA_ISR  
+    lda #INT_VSYNC
+    bit VERA_ISR  
+    beq @1
+        ; Do INT_VSYNC here                  
+        jsl vec_vsync              
+
+        ; Ack INT_VSYNC
+        lda VERA_ISR
+        ora #INT_VSYNC
+        sta VERA_ISR
+
+@1: lda #INT_LINE
+    bit VERA_ISR  
+    beq @2
+        ; Do INT_LINE here
+        jsl vec_line
+
+        ; Ack INT_VSYNC
+        lda VERA_ISR
+        ora #INT_LINE
+        sta VERA_ISR
+
+@2: lda #INT_SPRCOL
+    bit VERA_ISR  
+    beq @3
+        ; Do INT_SPRCOL here
+        jsl vec_sprcol
+
+        ; Ack INT_SPRCOL
+        lda VERA_ISR
+        ora #INT_SPRCOL
+        sta VERA_ISR        
+
+@3: lda #INT_AUDIO
+    bit INT_AUDIO
+    beq @4
+        ; Do INT_AUDIO here
+        jsl vec_audio
+
+        ; Ack INT_AUDIO
+        lda VERA_ISR
+        ora #INT_AUDIO
+        sta VERA_ISR        
+@4:        
+
+    mode16
 
     ;; END: Break out and dispatch the various kinds of IRQ
 
-    ;; Do normal IRQ housekeeping here?
+    ;; Do normal IRQ housekeeping here? - Or should this happen on task 0?
 
 
     ; ** BEGIN Context Switch - This will also clean up the switched stack
@@ -205,6 +269,11 @@
     lda p_stackAddress      
     tcs    
 
+    ;;# TODO: Do something sane when task runs to completion?  It should remove itself from task table.  
+    ;;       Push a return address so when task RTL it removes task from task table
+    ;;       It should deallocate the memory it sits on.
+    ;;       TaskInfo?  malloc_handle, stdin_handle, stdout_handle
+
     ; setup the new stack
     mode8
     lda p_processAddr + 2   ; Program Bank of new process
@@ -292,3 +361,10 @@
 
     rts
 .endproc
+
+.proc mt_dummy_vec: near
+    rtl
+.endproc
+
+
+

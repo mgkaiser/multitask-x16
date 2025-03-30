@@ -1,35 +1,34 @@
-MEMORY {
-    /* Zero Page */
-    ZPKERNAL:       start = $0080, size = $0011;                            # KERNAL
+MEMORY {    
 
     /* $0200 - $02ff */
-    KVAR:           start = $0200, size = $0095;                            # KERNAL
-    I2CMUTEX:       start = $02C0, size = $0001;                            # I2C MUTEX FLAG
+    KVAR:           start = $0200, size = $0100;
 
     /* $0300 - $03ff */
-    KVAR2:          start = $0300, size = $0100;                            # KERNAL: screen editor state
+    INTERRUPT_VEC:  start = $0300, size = $0010;                            
+    KVAR2:          start = $0310, size = $00f0;
 
     SIGNATURE:      start = $c000, size = $0010, fill = yes, fillval=$00;
-    KERNAL:         start = $c010, size = $3fd0, fill = yes, fillval=$ea;
+    KERNAL:         start = $c010, size = $3ef0, fill = yes, fillval=$ea;
+    JUMP_TABLE:     start = $ff00, size = $00e0, fill = yes, fillval=$dd;
     VECTORS_816:    start = $ffe0, size = $0010, fill = yes, fillval=$ee;
     VECTORS_02:     start = $fff0, size = $0010, fill = yes, fillval=$ff;
 }
 
-SEGMENTS {
-    ZPKERNAL:       load = ZPKERNAL,    type = zp;        
-    KVAR:           load = KVAR,        type = bss;    
-    KVAR2:          load = KVAR2,       type = bss;
-    INTERRUPT_DATA: load = KVAR2,       type = bss;
-    I2CMUTEX:       load = I2CMUTEX,    type = bss;    
-    KERNAL:         load = KERNAL,      type = ro;
-    CODE:           load = KERNAL,      type = ro;
-    SCREEN:         load = KERNAL,      type = ro;
-    I2C:            load = KERNAL,      type = ro;
-    MACHINE:        load = KERNAL,      type = ro;
-    INTERRUPT:      load = KERNAL,      type = ro;
-    PIPES:          load = KERNAL,      type = ro;
-    CHARPET:        load = KERNAL,      type = ro;
-    PALETTE:        load = KERNAL,      type = ro;
-    VECTORS_816:    load = VECTORS_816, type = ro;
-    VECTORS_02:     load = VECTORS_02,  type = ro;
+SEGMENTS {    
+    KVAR:           load = KVAR,            type = bss;
+    I2CMUTEX:       load = KVAR,            type = bss;        
+    KVAR2:          load = KVAR2,           type = bss;
+    INTERRUPT_DATA: load = KVAR2,           type = bss;    
+    INTERRUPT_VEC:  load = INTERRUPT_VEC,   type = bss;    
+    KERNAL:         load = KERNAL,          type = ro;
+    CODE:           load = KERNAL,          type = ro;
+    SCREEN:         load = KERNAL,          type = ro;
+    I2C:            load = KERNAL,          type = ro;
+    MACHINE:        load = KERNAL,          type = ro;
+    INTERRUPT:      load = KERNAL,          type = ro;
+    PIPES:          load = KERNAL,          type = ro;
+    CHARPET:        load = KERNAL,          type = ro;
+    PALETTE:        load = KERNAL,          type = ro;
+    VECTORS_816:    load = VECTORS_816,     type = ro;
+    VECTORS_02:     load = VECTORS_02,      type = ro;
 }

@@ -414,19 +414,31 @@
 	pha
 .endmacro
 
-.macro rjsr arg	
-	.local continue
-	per continue-1
+.macro rjsr arg		
+	per @+-1
 	brl arg
-	continue:
+	@:
 .endmacro
 
-.macro rjsl arg	
-	.local continue
+.macro rjsl arg		
 	phk
-	per continue-1
+	per @+-1
 	brl arg
-	continue:
+	@:
+.endmacro
+
+.macro il_jsl arg		
+	phk
+	per @+-1
+	jml [arg]
+	@:
+.endmacro
+
+.macro il_jsr arg	
+	.local continue	
+	per @+-1
+	jmp [arg]
+	@:
 .endmacro
 
 .macro mode16
@@ -469,4 +481,17 @@
 
 .macro END_CRITICAL_SECTION
 	cli
+.endmacro
+
+.macro set_int_vec value, addr
+	mode8
+	lda #$5c
+    sta addr+0
+	lda #<value
+	sta addr+1
+	lda #>value
+	sta addr+2
+    lda #^value
+    sta addr+3
+	mode16
 .endmacro

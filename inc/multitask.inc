@@ -1,5 +1,3 @@
-max_tasks       = $20
-
 .macro Multitask_Init
     SetRetVal               ; Return Value   
     jsl mt_init             ; Init the multitasking scheduler

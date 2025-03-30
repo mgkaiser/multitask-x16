@@ -86,8 +86,7 @@ vec_reset_02:
         inx
         cpx #60
     bne @1    
-
-    ; # TODO: Trace this through    
+    
     Multitask_Start thread, #proc_stack, ^D    
     
     mode8
