@@ -1,10 +1,3 @@
-.struct screen
-    screen_addr     .dword
-    charset_addr    .dword
-    color           .byte
-    llen            .byte    
-.endstruct
-
 .macro Screen_Init
     .out "Screen_Init"
     SetRetVal               ; Return Value   
@@ -66,8 +59,11 @@
 
 ; Load Charset
 
-; Set Active Screen
-
-; Get Active Screen
-
-; Init Screen Data
+; Set Active Screen - Make the specified screen active
+.macro Screen_Set_Active screen
+    .out "Screen_Set_Active"
+    SetRetVal                   ; Return Value 
+    SetParam screen             ; 
+    jsl screen_set_active       ; 
+    FreeParams 2                ; Pop all the params off leaving return value in A  
+.endmacro

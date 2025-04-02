@@ -40,6 +40,8 @@ proc_stack:
 ;;
 ;; Stuff above "drivers" are high level, uses params and stack frame, can be called by user programs
 ;;
+;; We're always in 16 bit mode except when we aren't....
+;; 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 vec_reset_02:
@@ -56,17 +58,18 @@ vec_reset_02:
     mode8
 
     jsr ioinit           ;go initilize i/o devices
-    jsr i2c_restore      ;release I2C pins and clear mutex flag    
-    Screen_Init
-	;jsr ramtas           ;go ram test and set
+    jsr i2c_restore      ;release I2C pins and clear mutex flag   
+    ;jsr ramtas           ;go ram test and set
 	;jsr restor           ;go set up os vectors	
 	;jsr ps2data_init
-    
-    ; Initialize pages
-    stz $00
-    stz $01
-
+     
     mode16
+
+    ; Initialize pages - Ends up in $00 and $01 because 16 bit
+    stz $00
+
+    ; Initialize the screen driver
+    Screen_Init
         
     ; Start Interrupts    
     Multitask_Init   

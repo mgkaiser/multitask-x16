@@ -12,7 +12,7 @@
 
 .export screen_init, screen_clear_line, screen_get_color, screen_set_color
 .export screen_get_char, screen_set_char, screen_set_char_color, screen_get_char_color
-.export screen_set_position, screen_get_position, screen_clear_screen
+.export screen_set_position, screen_get_position, screen_clear_screen, screen_set_active
 
 .import charpet
 
@@ -48,8 +48,6 @@ llen:	.res 1           ;$D9 x resolution
 ;
 ;---------------------------------------------------------------
 .proc screen_init: near
- 	; 16 bit mode
-    mode16  
         
     ; Save working registers
     ProcPrefix 
@@ -141,15 +139,12 @@ llen:	.res 1           ;$D9 x resolution
     FreeLocals
     ProcSuffix      
 
-    ; 8 bit mode
-    mode8
-
     rtl
 
 .endproc
 
 screen_load_defaults:
-stz VERA_CTRL
+	stz VERA_CTRL
 	lda @defaults+2
 	sta VERA_DC_VIDEO
 	lda @defaults+3
@@ -177,11 +172,7 @@ stz VERA_CTRL
 	; active profile
 	.byte $00
 	; profile 0
-	.byte $00,$21,$80,$80,$00,$00,$A0,$00,$F0,$61,$00,$00,$00
-	; profile 1
-	;.byte $03,$29,$40,$40,$00,$00,$A0,$00,$F0,$61,$00,$00,$00
-	; expansion
-	;.byte $00,$00,$00,$00	
+	.byte $00,$21,$80,$80,$00,$00,$A0,$00,$F0,$61,$00,$00,$00	
 
 ;---------------------------------------------------------------
 ; Clear line
@@ -528,6 +519,33 @@ upload_default_palette:
 	bne @2
 
 	rts
+
+.proc screen_set_active: near 
+        
+    ; Save working registers
+    ProcPrefix 
+    ProcFar 
+
+    ; Create local variable - Number in descending order - Number in descending order             
+    SetLocalCount 0
+
+    ; Declare parameters - reverse order        
+    DeclareParam p_screen, 0
+	DeclareParam r_retVal, 1  
+
+    ; Setup stack frame
+    SetupStackFrame  
+
+	; DO STUFF HERE
+
+	; Exit the procedure
+    FreeLocals
+    ProcSuffix      
+
+    rtl
+
+.endproc
+
 
 .segment "PALETTE"
 
