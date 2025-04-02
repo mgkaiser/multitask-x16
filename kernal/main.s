@@ -3,6 +3,7 @@
 .include "mac.inc"
 .include "io.inc"
 .include "multitask.inc"
+.include "screen.inc"
 .include "pipes.inc"
 
 .export vec_reset_02
@@ -12,7 +13,7 @@
 .import ioinit, screen_init, screen_clear_line, screen_get_color
 .import screen_set_color, screen_get_char, screen_set_char
 .import screen_set_char_color, screen_get_char_color
-.import screen_set_position, screen_get_position
+.import screen_set_position, screen_get_position, screen_clear_screen
 
 .import i2c_read_byte, i2c_write_byte, i2c_batch_read, i2c_batch_write
 .import i2c_read_first_byte, i2c_read_next_byte, i2c_read_stop, i2c_direct_read
@@ -42,9 +43,8 @@ proc_stack:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 vec_reset_02:
-
-    ; Suspend interrupts
-    sei
+    
+    BEGIN_CRITICAL_SECTION
     
     ; Native Mode
     modeNative
@@ -56,8 +56,8 @@ vec_reset_02:
     mode8
 
     jsr ioinit           ;go initilize i/o devices
-    jsr i2c_restore      ;release I2C pins and clear mutex flag
-    jsr screen_init  
+    jsr i2c_restore      ;release I2C pins and clear mutex flag    
+    Screen_Init
 	;jsr ramtas           ;go ram test and set
 	;jsr restor           ;go set up os vectors	
 	;jsr ps2data_init
@@ -67,28 +67,20 @@ vec_reset_02:
     stz $01
 
     mode16
-    
+        
     ; Start Interrupts    
     Multitask_Init   
-    jsr iokeys     
-    cli
-
+    
     ; Init Pipes        
     Pipe_Init pipe_conout
-    Pipe_Init pipe_kbdin    
-    
-    mode8
+    Pipe_Init pipe_kbdin            
 
-    ; Clear the screen
-    ldx #$00
-    @1:    
-        jsr screen_clear_line
-        inx
-        cpx #60
-    bne @1    
+    ; Clear the screen        
+    Screen_Clear_Screen    
     
+    ; Start the 2nd thread
     Multitask_Start thread, #proc_stack, ^D    
-    
+        
     mode8
     ldx #$01
     jsr screen_set_position

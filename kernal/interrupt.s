@@ -40,6 +40,8 @@ INT_AUDIO   = %00001000
 
     ; 16 bit mode
     mode16  
+    
+    BEGIN_CRITICAL_SECTION
 
     ; Save working registers
     ProcPrefix 
@@ -80,10 +82,9 @@ INT_AUDIO   = %00001000
 
     ; Exit the procedure
     FreeLocals
-    ProcSuffix        
+    ProcSuffix  
 
-    ; 8 bit mode
-    mode8
+    END_CRITICAL_SECTION
 
     rtl
 
@@ -206,8 +207,7 @@ INT_AUDIO   = %00001000
     pld         ; Pull data bank
     ply         ; Pull Y
     plx         ; Pull X
-    pla         ; Pull A    
-    mode8        
+    pla         ; Pull A        
     
     ; Return from interrupt
     rti
@@ -247,8 +247,7 @@ INT_AUDIO   = %00001000
     ; Setup stack frame
     SetupStackFrame
             
-    ; interrupts off
-    sei            
+    BEGIN_CRITICAL_SECTION
 
     ; Make sure there is space in the task table            
     Multitask_find_proc_slot    
@@ -303,8 +302,7 @@ INT_AUDIO   = %00001000
 
     end:
 
-    ; interrupts on
-    cli
+    END_CRITICAL_SECTION
     
     ; Exit the procedure
     FreeLocals

@@ -5,20 +5,14 @@
 
 .p816
 
+.include "screen.inc"
 .include "io.inc"
 .include "mac.inc"
 .include "regs.inc"
 
-.export screen_init
-.export screen_clear_line
-.export screen_get_color
-.export screen_set_color
-.export screen_get_char
-.export screen_set_char
-.export screen_set_char_color
-.export screen_get_char_color
-.export screen_set_position
-.export screen_get_position
+.export screen_init, screen_clear_line, screen_get_color, screen_set_color
+.export screen_get_char, screen_set_char, screen_set_char_color, screen_get_char_color
+.export screen_set_position, screen_get_position, screen_clear_screen
 
 .import charpet
 
@@ -26,12 +20,12 @@
 
 ; Screen
 ;
-.export data; [cpychr]
+;.export data; [cpychr]
 .export color;
 
 pnt:	.res 2           ;$D1 pointer to row
 color:	.res 1           ;    activ color nybble
-data:	.res 1           ;$D7
+;data:	.res 1           ;$D7
 llen:	.res 1           ;$D9 x resolution
 
 .segment "SCREEN"
@@ -40,26 +34,53 @@ llen:	.res 1           ;$D9 x resolution
 ; Initialize screen
 ;
 ;---------------------------------------------------------------
-screen_init:
-	stz VERA_CTRL   ;set ADDR1 active
+.proc screen_init: near
+ 	; 16 bit mode
+    mode16  
+        
+    ; Save working registers
+    ProcPrefix 
+    ProcFar 
+
+    ; Create local variable - Number in descending order - Number in descending order             
+    SetLocalCount 0
+
+    ; Declare parameters - reverse order        
+    DeclareParam r_retVal, 0  
+
+    ; Setup stack frame
+    SetupStackFrame  
+
+	mode8
+
+	; Set ADDR1 active
+	stz VERA_CTRL   
 
 	; Default line length
 	lda #$80
 	sta llen	
-		
+
+	; Load the character set	
 	ldx #<charpet
 	ldy #>charpet
 	jsr screen_set_charset
 
+	; Load the palette
 	jsr upload_default_palette
 
 	; Layer 1 configuration
 	lda #((1<<6)|(2<<4)|(0<<0))
 	sta VERA_L1_CONFIG
-	lda #(screen_addr>>9)
+
+	; Set the screen location to default
+	lda #(screen_addr>>9)	
 	sta VERA_L1_MAPBASE
+
+	; Set the charset location to default
 	lda #((charset_addr>>11)<<2)
 	sta VERA_L1_TILEBASE
+
+	; Set the default scroll settings
 	stz VERA_L1_HSCROLL_L
 	stz VERA_L1_HSCROLL_H
 	stz VERA_L1_VSCROLL_L
@@ -96,13 +117,23 @@ screen_init:
 	iny
 	bne :-
 	dex
-	bne :-
+	bne :-	
 
-	;lda #$ff
-	;sta cscrmd      ; force setting color on first mode change
-
+	; Load the defaults from the table
 	jsr screen_load_defaults
-	rts
+
+	mode16
+
+	; Exit the procedure
+    FreeLocals
+    ProcSuffix      
+
+    ; 8 bit mode
+    mode8
+
+    rtl
+
+.endproc
 
 screen_load_defaults:
 stz VERA_CTRL
@@ -141,27 +172,100 @@ stz VERA_CTRL
 
 ;---------------------------------------------------------------
 ; Clear line
-;
-;   In:   .x  line
 ;---------------------------------------------------------------
-screen_clear_line:
+.proc screen_clear_line: near
+ 	        
+    ; Save working registers
+    ProcPrefix 
+    ProcFar 
+
+    ; Create local variable - Number in descending order - Number in descending order     
+	DeclareLocal l_pnt, 0        
+    SetLocalCount 1
+
+    ; Declare parameters - reverse order       
+	DeclareParam p_pline, 0
+    DeclareParam r_retVal, 1  
+
+    ; Setup stack frame
+    SetupStackFrame  
+	
+	; Grab X from the param
+	ldx p_pline
+
+	mode8
+
+	; Get the screen address
+	stz l_pnt
+	stx l_pnt+1
+
+	; Set the line length
 	ldy llen
-	jsr screen_set_position	
-	lda pnt
-	sta VERA_ADDR_L      ;set base address
-	lda pnt+1
+
+	; Stuff the pointer into VERA
+	lda l_pnt
+	sta VERA_ADDR_L      		; set base address
+	lda l_pnt+1
 	clc
 	adc #>screen_addr
 	sta VERA_ADDR_M
-	lda #$10 | ^screen_addr;auto-increment = 1
+	lda #$10 | ^screen_addr		; auto-increment = 1
 	sta VERA_ADDR_H
+
+	; Store a space in the current color into the line
 :	lda #' '
-	sta VERA_DATA0     ;store space
-	lda color       ;always clear to current foregnd color
+	sta VERA_DATA0     			; store space
+	lda color       			; always clear to current foregnd color
 	sta VERA_DATA0
 	dey
 	bne :-
-	rts
+
+	mode16
+
+	; Exit the procedure
+    FreeLocals
+    ProcSuffix          
+
+    rtl
+
+.endproc
+
+;---------------------------------------------------------------
+; Clear Screen
+;---------------------------------------------------------------
+.proc screen_clear_screen: near 	
+        
+    ; Save working registers
+    ProcPrefix 
+    ProcFar 
+
+    ; Create local variable - Number in descending order - Number in descending order     	
+    SetLocalCount 0
+
+    ; Declare parameters - reverse order       	
+    DeclareParam r_retVal, 0  
+
+    ; Setup stack frame
+    SetupStackFrame  
+	
+	; Clear all the lines on the screen
+	ldx #$0000
+    @1:          		
+        Screen_Clear_Line ^X        		
+        inx
+        cpx #62
+    bne @1    	
+
+	; Exit the procedure
+    FreeLocals
+    ProcSuffix          
+
+    rtl
+
+.endproc
+
+.A8
+.I8
 
 ;---------------------------------------------------------------
 ; Calculate start of line
@@ -386,7 +490,7 @@ inicpy:
 	ldx #$10 | ^charset_addr
 	stx VERA_ADDR_H
 	plx
-	stz data	
+	;stz data	
 	rts	
 
 upload_default_palette:

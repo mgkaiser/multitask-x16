@@ -304,7 +304,7 @@
 	pha  
     phx
     phy
-    phd
+    phd	
 .endmacro
 
 .macro ProcSuffix
@@ -390,9 +390,14 @@
 				.if (.match (.left (2, {arg}), ^D))
 					.out "-- D --"					
 					phd
-				.else																				
-					.out "-- PER --"
-					per arg														
+				.else
+					.if (.match (.left (2, {arg}), ^X))
+						.out "-- X --"					
+						phx
+					.else																																								
+						.out "-- PER --"
+						per arg														
+					.endif
 				.endif
 			.endif
 		.endif

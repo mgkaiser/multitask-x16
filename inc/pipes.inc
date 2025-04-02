@@ -1,3 +1,5 @@
+PIPE_LEN=16
+
 .struct pipe
     head    .word
     tail    .word

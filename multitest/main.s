@@ -21,11 +21,9 @@
 
     ; ** Initialize multitasking engine
     Multitask_Init        
-
-    ;.byte $db
+    
     mode8    
-    loop:
-        ;.byte $db    
+    loop:        
         lda #$41
         jsr $ffd2
     bra loop
