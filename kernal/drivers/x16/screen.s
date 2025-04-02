@@ -18,6 +18,19 @@
 
 .segment "KVAR2" ; more KERNAL vars
 
+char_addrs: 	
+	set_charset_addr $0001f000
+	set_charset_addr $0001f000
+	set_charset_addr $0001f000
+	set_charset_addr $0001f000
+	set_charset_addr $0001f000 
+screen_addrs:	
+	set_screen_addr $0001b000
+	set_screen_addr $00000000
+	set_screen_addr $00004000
+	set_screen_addr $00008000
+	set_screen_addr $0000c000
+
 ; Screen
 ;
 ;.export data; [cpychr]

@@ -500,3 +500,11 @@
     sta addr+3
 	mode16
 .endmacro
+
+.macro set_screen_addr addr
+.byte (addr>>9)
+.endmacro
+
+.macro set_charset_addr addr
+.byte ((addr>>11)<<2)
+.endmacro
