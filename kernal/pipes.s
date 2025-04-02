@@ -10,6 +10,15 @@
 
 .segment "PIPES"
 
+; ***************************************************************
+; ** IN:
+; **    16-bit RetVal
+; **    16-bit pPipe - High Word ($00kk)
+; **    16-bit pPipe - Low Word ($pppp)
+; ***************************************************************
+; ** OUT:
+; **    RetVal = No meaningful value
+; ***************************************************************
 .proc pipe_init: near
 
     ; Save working registers
@@ -17,9 +26,6 @@
     ProcFar 
 
     ; Create local variable - Number in descending order - Number in descending order         
-    ;DeclareLocalPointerWithValue l_pCurrentTask, currentTask, 2
-    ;DeclareLocalPointerWithValue l_pMTScheduler, mt_scheduler, 1
-    ;DeclareLocalPointerWithValue l_pOldIrq, oldIrq, 0
     SetLocalCount 0
 
     ; Declare parameters - reverse order        
@@ -55,7 +61,9 @@
 ; **    16-bit value - (only low byte is pushed to pipe)
 ; ***************************************************************
 ; ** OUT:
-; **
+; **    RetVal = No meaningful value
+; **    Carry Clear = Success
+; **    Carry Set   = Failure
 ; ***************************************************************
 .proc pipe_push: near
 
@@ -138,6 +146,17 @@ end:
 
 .endproc
 
+; ***************************************************************
+; ** IN:
+; **    16-bit RetVal
+; **    16-bit pPipe - High Word ($00kk)
+; **    16-bit pPipe - Low Word ($pppp)
+; ***************************************************************
+; ** OUT:
+; **    RetVal = Byte popped from pipe
+; **    Carry Clear = Success
+; **    Carry Set   = Failure
+; ***************************************************************
 .proc pipe_pop: near
     
     ; Save working registers
