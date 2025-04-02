@@ -72,7 +72,6 @@
     ProcFar 
 
     ; Create local variable - Number in descending order - Number in descending order                 
-    DeclareLocal l_pBuffer, 2
     DeclareLocal l_Next, 0
     SetLocalCount 1
 
@@ -111,21 +110,13 @@
 
 @2:
 
-    ; l_pBuffer = &(pPipe->pipe::buffer)
-    clc
-    lda pPipe
-    adc #pipe::buffer
-    sta l_pBuffer
-    lda pPipe + 2
-    sta l_pBuffer + 2
-
-    ; l_pBuffer[pPipe->pipe::head] = data;      ; Load data and then move
+    ; pPipe[pPipe->pipe::head] = data;          ; Load data and then move
     mode8
     ldy #pipe::head
     lda [pPipe], y 
     tay                                         ; Y = pPipe->pipe::head
     lda value
-    sta [l_pBuffer], y
+    sta [pPipe], y
     mode16
     
     ; pPipe->pipe::head = next;                 ; head to next data offset.
@@ -164,9 +155,8 @@ end:
     ProcFar 
 
     ; Create local variable - Number in descending order - Number in descending order             
-    DeclareLocal l_pBuffer, 2
     DeclareLocal l_Next, 0
-    SetLocalCount 3
+    SetLocalCount 1
 
     ; Declare parameters - reverse order            
     DeclareParam pPipe, 0       ; Skip 2 because long param        
@@ -203,20 +193,12 @@ end:
 
 @2:
 
-    ; l_pBuffer = &(pPipe->pipe::buffer)
-    clc
-    lda pPipe
-    adc #pipe::buffer
-    sta l_pBuffer
-    lda pPipe + 2
-    sta l_pBuffer + 2
-
-    ; *r_retVal = l_pBuffer[pPipe->pipe::tail];  // Read data and then move
+    ; *r_retVal = pPipe[pPipe->pipe::tail];  // Read data and then move
     mode8
     ldy #pipe::tail
     lda [pPipe], y 
     tay                                         
-    lda [l_pBuffer], y
+    lda [pPipe], y
     mode16
     and #$00ff
     sta r_retVal
