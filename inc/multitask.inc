@@ -1,3 +1,10 @@
+MAX_TASKS=32
+
+.struct struct_tasks   	
+	taskTable   .res 64
+    currentTask .word
+.endstruct
+
 .macro Multitask_Init
     SetRetVal               ; Return Value   
     jsl mt_init             ; Init the multitasking scheduler

@@ -14,7 +14,7 @@ PIPE_LEN=16
     FreeParams 3            ; Pop all the params off leaving return value in A  
 .endmacro
 
-.macro Pipe_Push pPipe value 
+.macro Pipe_Push pPipe, value 
     .out "Pipe_Push"
     SetRetVal               ; Return Value                
     SetParamL f:pPipe       ; pointer to pipe       - Counts a 2 because long

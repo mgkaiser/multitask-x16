@@ -15,11 +15,10 @@ INT_AUDIO   = %00001000
 
 .segment "INTERRUPT_DATA"
 
-    ;# TODO: More than 32 tasks?
-    max_tasks       = $20
-
-    currentTask: 	.word $0000     ; Current task	
-	taskTable:      .res $40		; 64 bytes to hold task table.
+    ;# TODO: Allow this to be relocated anywhere in memory.  
+    ;   Maybe dynamically allocate after malloc is ready?
+    ;   Maybe just a fixed location in High Memory?
+    tasks: .res .sizeof(struct_tasks)
 
 .segment "INTERRUPT_VEC"
 
@@ -58,20 +57,20 @@ INT_AUDIO   = %00001000
 
     ; Current task is 0
     lda #$0000
-    sta currentTask
+    sta tasks + struct_tasks::currentTask
 
     ; Task 0 is used
     lda #$ffff
-    sta taskTable
+    sta tasks
 
     ; All other tasks are not used
     ldx #$0002
     lda #$0000
     @1:
-        sta taskTable, x
+        sta tasks, x
         inx 
         inx
-        cpx# max_tasks*2
+        cpx# MAX_TASKS*2
     bne @1    
 
     ; Setup vectors    
@@ -171,27 +170,27 @@ INT_AUDIO   = %00001000
     ; Remember the current stack    
 
     ; Remember the current stack
-    ldy currentTask    
+    ldy tasks + struct_tasks::currentTask    
     tsc
-    sta taskTable, y
+    sta tasks, y
     
     nextTask:
 
-        ; currentTask++
-        lda currentTask
+        ; tasks.struct_tasks::currentTask++
+        lda tasks + struct_tasks::currentTask
         inc
         inc
 
-        ; if currentTask = max_tasks currentTask = 0
-        cmp #max_tasks * 2
+        ; if tasks.struct_tasks::currentTask = MAX_TASKS tasks.struct_tasks::currentTask = 0
+        cmp #MAX_TASKS * 2
         bne skipZero
             lda #$0000
         skipZero:        
-        sta currentTask
+        sta tasks + struct_tasks::currentTask
 
-        ; if taskTable[curentTask] == 0 goto @1
+        ; if tasks[currentTask] == 0 goto @1
         tay
-        lda taskTable, Y
+        lda tasks, Y
         cmp #$0000
 
     beq nextTask   
@@ -294,7 +293,7 @@ INT_AUDIO   = %00001000
     ; Store where the stack pointer it in the task table
     tsc    
     ldy l_newProcSlot    
-    sta taskTable, y      
+    sta tasks, y      
 
     ; restore current stack
     ldx l_currentStack
@@ -339,12 +338,12 @@ INT_AUDIO   = %00001000
 
     ldy #$0000
     loop:
-        lda taskTable, y
+        lda tasks, y
         cmp #$00
         beq end
         iny
         iny
-        cpy #max_tasks * 2
+        cpy #MAX_TASKS * 2
     bne loop
     ldy #$ffff
     end:
