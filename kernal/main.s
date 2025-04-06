@@ -8,12 +8,11 @@
 
 .export vec_reset_02
 
-.import iokeys
-
+.import screen_init, screen_set_active, screen_clear_screen, screen_put_charcolor
 .import ioinit, screen_init, screen_clear_line, screen_get_color
 .import screen_set_color, screen_get_char, screen_set_char
 .import screen_set_char_color, screen_get_char_color
-.import screen_set_position, screen_get_position, screen_clear_screen
+.import screen_set_position, screen_get_position
 
 .import i2c_read_byte, i2c_write_byte, i2c_batch_read, i2c_batch_write
 .import i2c_read_first_byte, i2c_read_next_byte, i2c_read_stop, i2c_direct_read
@@ -26,10 +25,12 @@
 .import pipe_conout, pipe_kbdin
 
 .segment "KVAR"
+spacer1:    .res 10
 character:  .byte $00
 character2: .byte $00
 
-.res $40 
+.segment "STACK1"
+.res $80 
 proc_stack: 
 
 .segment "KERNAL"
@@ -50,116 +51,79 @@ vec_reset_02:
     
     ; Native Mode
     modeNative
-
-    ; Setup stack
     mode16
+
+    ; Setup stack    
     ldx #$01ff	
 	txs      
-    mode8
 
+    ; Start Interrupts       
+    Multitask_Init   
+
+    mode8
     jsr ioinit           ;go initilize i/o devices
     jsr i2c_restore      ;release I2C pins and clear mutex flag   
     ;jsr ramtas           ;go ram test and set
 	;jsr restor           ;go set up os vectors	
-	;jsr ps2data_init
-     
+	;jsr ps2data_init     
     mode16
 
     ; Initialize pages - Ends up in $00 and $01 because 16 bit
-    stz $00
+    stz $00    
 
-    ; Initialize the screen driver
-    Screen_Init
-        
-    ; Start Interrupts    
-    Multitask_Init   
+    ; Initialize the screen driver 
+    Screen_Init        
     
     ; Init Pipes        
     Pipe_Init pipe_conout
     Pipe_Init pipe_kbdin            
 
-    ; Clear the screen        
-    Screen_Clear_Screen    
-    
-    ; Start the 2nd thread
-    Multitask_Start thread, #proc_stack, ^D    
-        
-    mode8
-    ldx #$01
-    jsr screen_set_position
-    lda #1
-    ldx #$61
-    ldy #$01
-    jsr screen_set_char_color
-        
-    lda #2    
-    iny
-    jsr screen_set_char_color
-        
-    lda #3
-    iny
-    jsr screen_set_char_color
-    
-    lda #4    
-    iny
-    jsr screen_set_char_color
+    ; Clear the screen 
+    Screen_Set_Active #1      
+    Screen_Clear_Screen #1           
+                    
+    Screen_Put_CharColor #1, #1, #1, #$6101     
+    Screen_Put_CharColor #1, #2, #1, #$6102     
+    Screen_Put_CharColor #1, #3, #1, #$6103     
+    Screen_Put_CharColor #1, #4, #1, #$6104     
 
-    @2:
+    ; Start the 2nd thread    
+    Multitask_Start thread, #proc_stack, ^D       
 
-        BEGIN_CRITICAL_SECTION
-
-        ldx #$03
-        jsr screen_set_position
+    END_CRITICAL_SECTION    
+                        
+    @99:                
         lda character
-        inc 
-        sta character        
-        ldx #$61
-        ldy #$01
-        jsr screen_set_char_color
+        inc
+        sta character           
+        Screen_Put_CharColor #1, #3, #7, ^A       
+        
+        ;mode8	        
+        ;sta $9fb9
+        ;mode16            
+
+        ;cop #$00     
+    bra @99    
     
-        ldx #$42
-        ldy #$07    
-        jsr i2c_read_byte
-        pha
-
-        ldx #$02
-        jsr screen_set_position
-        pla
-        cmp #$00
-        beq @3
-            ldx #$61
-            ldy #$01
-            jsr screen_set_char_color
-        @3:
-        
-        END_CRITICAL_SECTION
-
-        cop #$00        
-        
-    jmp @2    
+    ;ldx #$42
+    ;ldy #$07    
+    ;jsr i2c_read_byte   
 
 .proc thread: near
-    @1:
-        lda $07fd
-        inc
-        sta $07fd
-        mode8
+        
+    @1:  
 
-        BEGIN_CRITICAL_SECTION
-
-        ldx #$06
-        jsr screen_set_position
+        mode16                
         lda character2
         inc 
-        sta character2       
-        ldx #$61
-        ldy #$01
-        jsr screen_set_char_color
+        sta character2              
+        Screen_Put_CharColor #1, #3, #3, ^A             
 
-        END_CRITICAL_SECTION
-
-        cop #$00
-        mode16        
+        ;mode8	        
+        ;sta $9fba
+        ;mode16
+        
+        ;cop #$00        
     bra @1
     rtl
 .endproc

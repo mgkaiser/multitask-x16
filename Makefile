@@ -23,7 +23,7 @@ ASFLAGS     += --cpu 65SC02
 ASFLAGS     += --relax-checks
 BUILD_DIR=build/x16
 EMU_DIR1=../x16-emulator
-EMU_DIR2=/mnt/c/x16emu_win64-r48/sdcard/sdcard_root/
+EMU_DIR2=/mnt/c/x16emu_win64-r48
 
 CFG_DIR=$(BUILD_DIR)/cfg
 

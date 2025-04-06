@@ -300,6 +300,11 @@
 	ora addr+1
 .endmacro
 
+.macro breakpoint
+	;.byte $ea
+	.byte $db
+.endmacro
+
 .macro ProcPrefix
 	pha  
     phx
@@ -314,13 +319,13 @@
     pla
 .endmacro
 
-.macro SetupStackFrame
+.macro SetupStackFrame		
 	tsc
     tcd
 .endmacro
 
 .macro RestoreStackFrame
-	lda #$0000
+	pla
 	tcd
 .endmacro
 

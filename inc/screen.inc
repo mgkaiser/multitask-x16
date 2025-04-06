@@ -6,20 +6,22 @@
 .endmacro
 
 ; Clear a line
-.macro Screen_Clear_Line line
+.macro Screen_Clear_Line screen, line
     .out "Screen_Clear_Line"
     SetRetVal               ; Return Value   
+    SetParam screen
     SetParam line           ; The line to clear
     jsl screen_clear_line   ; 
-    FreeParams 2            ; Pop all the params off leaving return value in A  
+    FreeParams 3            ; Pop all the params off leaving return value in A  
 .endmacro
 
 ; Clear the screen
-.macro Screen_Clear_Screen
+.macro Screen_Clear_Screen screen
     .out "Screen_Clear_Screen"
     SetRetVal               ; Return Value       
+    SetParam screen
     jsl screen_clear_screen ; 
-    FreeParams 1            ; Pop all the params off leaving return value in A  
+    FreeParams 2            ; Pop all the params off leaving return value in A  
 .endmacro
 
 ; Put char at x/y
@@ -29,14 +31,15 @@
 ; Get color at x/y
 
 ; Put char/color at x/y
-.macro Screen_Put_CharColor
-    .out "Screen_Put_CharColor"
+.macro Screen_Put_CharColor screen, xpos, ypos, charcolor
+    .out "Screen_Put_CharColor"    
     SetRetVal                   ; Return Value 
+    SetParam screen
     SetParam xpos               ; 
     SetParam ypos               ; 
     SetParam charcolor          ; color in high, char in low
     jsl screen_put_charcolor    ; 
-    FreeParams 4                ; Pop all the params off leaving return value in A  
+    FreeParams 5                ; Pop all the params off leaving return value in A      
 .endmacro
 
 ; Get char/color at x/y

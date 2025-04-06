@@ -33,7 +33,9 @@
     DeclareParam r_retVal, 2
 
     ; Setup stack frame
-    SetupStackFrame      
+    SetupStackFrame   
+
+    mode8   
 
     ; Make head point to 0
     ldy #pipe::head
@@ -43,6 +45,8 @@
     ; Make tail point to 0
     ldy #pipe::tail    
     sta [pPipe], y
+
+    mode16
 
     ; Exit the procedure
     FreeLocals
@@ -83,6 +87,8 @@
     ; Setup stack frame
     SetupStackFrame    
 
+    mode8
+
     ; next = pPipe->pipe::head + 1;
     ldy #pipe::head
     lda [pPipe], y 
@@ -110,14 +116,12 @@
 
 @2:
 
-    ; pPipe[pPipe->pipe::head] = data;          ; Load data and then move
-    mode8
+    ; pPipe[pPipe->pipe::head] = data;          ; Load data and then move    
     ldy #pipe::head
     lda [pPipe], y 
     tay                                         ; Y = pPipe->pipe::head
     lda value
-    sta [pPipe], y
-    mode16
+    sta [pPipe], y    
     
     ; pPipe->pipe::head = next;                 ; head to next data offset.
     ldy #pipe::head
@@ -128,6 +132,8 @@
     clc
 
 end:
+
+    mode16
 
     ; Exit the procedure
     FreeLocals
@@ -165,6 +171,8 @@ end:
     ; Setup stack frame
     SetupStackFrame    
 
+    mode8
+
     ; if (pPipe->pipe::head == pPipe->pipe::tail)  // if the head == tail, we don't have any data
     ldy #pipe::head    
     lda [pPipe], y
@@ -193,13 +201,11 @@ end:
 
 @2:
 
-    ; *r_retVal = pPipe[pPipe->pipe::tail];  // Read data and then move
-    mode8
+    ; *r_retVal = pPipe[pPipe->pipe::tail];  // Read data and then move    
     ldy #pipe::tail
     lda [pPipe], y 
     tay                                         
-    lda [pPipe], y
-    mode16
+    lda [pPipe], y    
     and #$00ff
     sta r_retVal
     
@@ -212,6 +218,8 @@ end:
     clc
 
 end:
+
+    mode16
 
     ; Exit the procedure
     FreeLocals

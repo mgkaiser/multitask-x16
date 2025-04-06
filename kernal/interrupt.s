@@ -39,9 +39,7 @@ INT_AUDIO   = %00001000
 
     ; 16 bit mode
     mode16  
-    
-    BEGIN_CRITICAL_SECTION
-
+        
     ; Save working registers
     ProcPrefix 
     ProcFar 
@@ -56,6 +54,7 @@ INT_AUDIO   = %00001000
     SetupStackFrame    
 
     ; Current task is 0
+
     lda #$0000
     sta tasks + struct_tasks::currentTask
 
@@ -81,9 +80,7 @@ INT_AUDIO   = %00001000
 
     ; Exit the procedure
     FreeLocals
-    ProcSuffix  
-
-    END_CRITICAL_SECTION
+    ProcSuffix      
 
     rtl
 
@@ -94,20 +91,29 @@ INT_AUDIO   = %00001000
 ;   None
 ; OUT:
 ;   None
-.proc mt_scheduler: near      
-            
+.proc mt_scheduler: near  
+    
     ; Save the state        
     mode16        
     pha         ; Push A
     phx         ; Push X
     phy         ; Push Y
-    phd         ; Push data bank
-    lda $00   ; Push RAM and ROM Banks
-    pha
+    phd         ; Push direct page
+    phb         ; Push data bank    
+    lda f:$00   ; Push RAM and ROM Banks    
+    pha    
+
+    sei
 
     ; RAM and ROM banks to 0
-    stz $00
-    stz $01
+    lda #$0000
+    sta f:$00    
+
+    ; Remember the current stack    
+    lda f:tasks + struct_tasks::currentTask         
+    tax
+    tsc
+    sta f:tasks, x
         
     ;; BEGIN: Break out and dispatch the various kinds of IRQ    
     ;;# TODO: Maybe interrupts should be "special tasks" that launch on their trigger and run to completion?    
@@ -118,66 +124,66 @@ INT_AUDIO   = %00001000
     bit VERA_ISR  
     beq @1
         ; Do INT_VSYNC here                  
-        jsl vec_vsync              
-
+        jsl vec_vsync           
+        ;lda #$01
+        ;sta f:$9fba
+        
         ; Ack INT_VSYNC
         lda VERA_ISR
         ora #INT_VSYNC
-        sta VERA_ISR
+        sta VERA_ISR        
 
 @1: lda #INT_LINE
     bit VERA_ISR  
     beq @2
         ; Do INT_LINE here
-        jsl vec_line
-
+        jsl vec_line        
+        ;lda #$02
+        ;sta f:$9fba
+        
         ; Ack INT_VSYNC
         lda VERA_ISR
         ora #INT_LINE
-        sta VERA_ISR
+        sta VERA_ISR        
 
 @2: lda #INT_SPRCOL
     bit VERA_ISR  
     beq @3
         ; Do INT_SPRCOL here
-        jsl vec_sprcol
-
+        jsl vec_sprcol        
+        ;lda #$03
+        ;sta f:$9fba
+        
         ; Ack INT_SPRCOL
         lda VERA_ISR
         ora #INT_SPRCOL
-        sta VERA_ISR        
+        sta VERA_ISR                
 
 @3: lda #INT_AUDIO
     bit INT_AUDIO
     beq @4
         ; Do INT_AUDIO here
-        jsl vec_audio
-
+        jsl vec_audio        
+        ;lda #$04
+        ;sta f:$9fba
+        
         ; Ack INT_AUDIO
         lda VERA_ISR
         ora #INT_AUDIO
-        sta VERA_ISR        
-@4:        
+        sta VERA_ISR                
+@4:            
 
     mode16
 
-    ;; END: Break out and dispatch the various kinds of IRQ
-
     ;; Do normal IRQ housekeeping here? - Or should this happen on task 0?
 
-
     ; ** BEGIN Context Switch - This will also clean up the switched stack
-    ; Remember the current stack    
-
-    ; Remember the current stack
-    ldy tasks + struct_tasks::currentTask    
-    tsc
-    sta tasks, y
+    ; Remember the current stack        
     
     nextTask:
 
         ; tasks.struct_tasks::currentTask++
-        lda tasks + struct_tasks::currentTask
+        lda f:tasks + struct_tasks::currentTask
         inc
         inc
 
@@ -186,11 +192,11 @@ INT_AUDIO   = %00001000
         bne skipZero
             lda #$0000
         skipZero:        
-        sta tasks + struct_tasks::currentTask
+        sta f:tasks + struct_tasks::currentTask
 
         ; if tasks[currentTask] == 0 goto @1
-        tay
-        lda tasks, Y
+        tax
+        lda f:tasks, x
         cmp #$0000
 
     beq nextTask   
@@ -198,16 +204,25 @@ INT_AUDIO   = %00001000
     ; Make the next task active
     tcs    
 
+    ; Which task is up next?
+    ;mode8
+    ;txa
+    ;sta f:$9fb9       
+    ;mode16
+
     ; ** END Context Switch
 
-    ; Restore State
+    cli
+
+    ; Restore State          
     pla         ; Pull RAM and ROM Banks
-    sta $00
-    pld         ; Pull data bank
+    sta f:$00
+    plb         ; Pull data bank
+    pld         ; Pull direct page
     ply         ; Pull Y
     plx         ; Pull X
     pla         ; Pull A        
-    
+        
     ; Return from interrupt
     rti
 
@@ -285,8 +300,12 @@ INT_AUDIO   = %00001000
     pha                 ; A for new process
     phx                 ; X for new process
     phy                 ; Y for new process    
+    lda #$0000          ; Direct Page
+    pha             
+    mode8
     lda p_dataBank      ; Data Bank of new process
-    pha    
+    pha  
+    mode16               
     lda #$00            ; RAM/ROM banks for new process
     pha    
 

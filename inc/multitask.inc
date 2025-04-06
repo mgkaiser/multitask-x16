@@ -34,8 +34,8 @@ MAX_TASKS=32
     FreeParams 2            ; Pop all the params off leaving return value in A  
 .endmacro
 
-.macro Multitask_find_proc_slot pTaskTable
+.macro Multitask_find_proc_slot
     SetRetVal               ; Return Value                    
-    rjsr find_proc_slot
+    jsr find_proc_slot
     FreeParams 1            ; Pop all the params off leaving return value in A  
 .endmacro

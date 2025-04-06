@@ -7,6 +7,8 @@ MEMORY {
     INTERRUPT_VEC:  start = $0300, size = $0010;                            
     KVAR2:          start = $0310, size = $00f0;
 
+    STACK1:         start = $0400, size = $0100;
+
     SIGNATURE:      start = $c000, size = $0010, fill = yes, fillval=$00;
     KERNAL:         start = $c010, size = $3ef0, fill = yes, fillval=$ea;
     JUMP_TABLE:     start = $ff00, size = $00e0, fill = yes, fillval=$dd;
@@ -15,6 +17,7 @@ MEMORY {
 }
 
 SEGMENTS {    
+    STACK1:         load = STACK1,          type = bss;
     KVAR:           load = KVAR,            type = bss;
     I2CMUTEX:       load = KVAR,            type = bss;        
     KVAR2:          load = KVAR2,           type = bss;

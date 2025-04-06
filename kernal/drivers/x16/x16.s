@@ -9,7 +9,6 @@
 .include "audio.inc"
 
 .export ioinit
-.export iokeys
 .export vera_wait_ready
 
 .segment "MACHINE"
@@ -27,13 +26,9 @@ ioinit:
 	;jsr entropy_init
 	;jsr clklo       ;release the clock line	
 
-;---------------------------------------------------------------
-; Set up VBLANK IRQ
-;
-;---------------------------------------------------------------
-iokeys:
+	; Set up VBLANK IRQ
 	lda #1
-	sta VERA_IEN    ;VERA VBLANK IRQ for 60 Hz
+	sta VERA_IEN    
 	rts
 
 ;---------------------------------------------------------------

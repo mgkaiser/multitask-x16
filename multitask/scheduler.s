@@ -126,9 +126,6 @@ pTaskTable       =  $7e
 
     ; SP = taskTable[currentTask]
     tcs
-    ;lda #$0000
-    ;sta (pCurrentTask)
-    ;.byte $db
 
     ; ** END Context Switch
 

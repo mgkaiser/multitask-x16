@@ -10,7 +10,7 @@
 .include "mac.inc"
 .include "regs.inc"
 
-.export screen_init, screen_clear_line, screen_get_color, screen_set_color
+.export screen_init, screen_clear_line, screen_get_color, screen_set_color, screen_put_charcolor
 .export screen_get_char, screen_set_char, screen_set_char_color, screen_get_char_color
 .export screen_set_position, screen_get_position, screen_clear_screen, screen_set_active
 
@@ -18,18 +18,10 @@
 
 .segment "KVAR2" ; more KERNAL vars
 
-char_addrs: 	
-	set_charset_addr $0001f000
-	set_charset_addr $0001f000
-	set_charset_addr $0001f000
-	set_charset_addr $0001f000
-	set_charset_addr $0001f000 
-screen_addrs:	
-	set_screen_addr $0001b000
-	set_screen_addr $00000000
-	set_screen_addr $00004000
-	set_screen_addr $00008000
-	set_screen_addr $0000c000
+char_addrs: .res 5	
+screen_addrs: .res 5
+screen_addrs_h: .res 5
+screen_addrs_m: .res 5
 
 ; Screen
 ;
@@ -42,6 +34,31 @@ color:	.res 1           ;    activ color nybble
 llen:	.res 1           ;$D9 x resolution
 
 .segment "SCREEN"
+
+default_char_addrs: 	
+	set_charset_addr $0001f000
+	set_charset_addr $0001f000
+	set_charset_addr $0001f000
+	set_charset_addr $0001f000
+	set_charset_addr $0001f000 
+default_screen_addrs:	
+	set_screen_addr $0001b000
+	set_screen_addr $00000000
+	set_screen_addr $00004000
+	set_screen_addr $00008000
+	set_screen_addr $0000c000
+default_screen_addrs_h:
+	.byte ^$0001b000
+	.byte ^$00000000
+	.byte ^$00004000
+	.byte ^$00008000
+	.byte ^$0000c000
+default_screen_addrs_m:
+	.byte >$0001b000
+	.byte >$00000000
+	.byte >$00004000
+	.byte >$00008000
+	.byte >$0000c000
 
 ;---------------------------------------------------------------
 ; Initialize screen
@@ -64,6 +81,24 @@ llen:	.res 1           ;$D9 x resolution
 
 	mode8
 
+	; Set active screen to zero
+	lda #$00	
+
+	; Prime the screen and char table	
+	tax
+@1:	
+	lda f:default_char_addrs, x
+	sta f:char_addrs, x
+	lda f:default_screen_addrs, x	
+	sta f:screen_addrs, x
+	lda f:default_screen_addrs_h, x	
+	sta f:screen_addrs_h, x
+	lda f:default_screen_addrs_m, x	
+	sta f:screen_addrs_m, x
+	inx
+	cpx #$05
+	bne @1
+
 	; Set ADDR1 active
 	stz VERA_CTRL   
 
@@ -83,12 +118,14 @@ llen:	.res 1           ;$D9 x resolution
 	lda #((1<<6)|(2<<4)|(0<<0))
 	sta VERA_L1_CONFIG
 
-	; Set the screen location to default
-	lda #(screen_addr>>9)	
+	; Set the screen location to default - Always init to Screen 0, change later if you want
+	ldx #$00
+	lda screen_addrs, x	
 	sta VERA_L1_MAPBASE
 
-	; Set the charset location to default
-	lda #((charset_addr>>11)<<2)
+	; Set the charset location to default - Always init to Screen 0, change later if you want
+	ldx #$00
+	lda char_addrs, x	
 	sta VERA_L1_TILEBASE
 
 	; Set the default scroll settings
@@ -144,6 +181,8 @@ llen:	.res 1           ;$D9 x resolution
 .endproc
 
 screen_load_defaults:
+	.A8
+    .I8
 	stz VERA_CTRL
 	lda @defaults+2
 	sta VERA_DC_VIDEO
@@ -187,9 +226,10 @@ screen_load_defaults:
 	DeclareLocal l_pnt, 0        
     SetLocalCount 1
 
-    ; Declare parameters - reverse order       
+    ; Declare parameters - reverse order       	
 	DeclareParam p_pline, 0
-    DeclareParam r_retVal, 1  
+	DeclareParam p_screen, 1
+    DeclareParam r_retVal, 2
 
     ; Setup stack frame
     SetupStackFrame  
@@ -206,14 +246,20 @@ screen_load_defaults:
 	; Set the line length
 	ldy llen
 
+	; Get the screen
+	lda p_screen
+	tax
+
 	; Stuff the pointer into VERA
+	stz VERA_CTRL
 	lda l_pnt
 	sta VERA_ADDR_L      		; set base address
 	lda l_pnt+1
-	clc
-	adc #>screen_addr
-	sta VERA_ADDR_M
-	lda #$10 | ^screen_addr		; auto-increment = 1
+	clc	
+	adc f:screen_addrs_h, x
+	sta VERA_ADDR_M	
+	lda f:screen_addrs_h, x
+	ora #$10
 	sta VERA_ADDR_H
 
 	; Store a space in the current color into the line
@@ -246,8 +292,9 @@ screen_load_defaults:
     ; Create local variable - Number in descending order - Number in descending order     	
     SetLocalCount 0
 
-    ; Declare parameters - reverse order       	
-    DeclareParam r_retVal, 0  
+    ; Declare parameters - reverse order   
+	DeclareParam p_screen, 0    	
+    DeclareParam r_retVal, 1  
 
     ; Setup stack frame
     SetupStackFrame  
@@ -255,7 +302,7 @@ screen_load_defaults:
 	; Clear all the lines on the screen
 	ldx #$0000
     @1:          		
-        Screen_Clear_Line ^X        		
+        Screen_Clear_Line *p_screen, ^X        		
         inx
         cpx #62
     bne @1    	
@@ -263,6 +310,99 @@ screen_load_defaults:
 	; Exit the procedure
     FreeLocals
     ProcSuffix          
+
+    rtl
+
+.endproc
+
+;---------------------------------------------------------------
+; Put charColor
+;---------------------------------------------------------------
+.proc screen_put_charcolor: near 		
+
+	;BEGIN_CRITICAL_SECTION    	 
+		        
+    ; Save working registers
+    ProcPrefix 
+    ProcFar 
+
+    ; Create local variable - Number in descending order - Number in descending order     	
+    DeclareLocal l_pnt, 1        
+	DeclareLocal l_databank, 0
+    SetLocalCount 2
+
+    ; Declare parameters - reverse order   
+	DeclareParam p_charcolor, 0    	
+	DeclareParam p_ypos, 1    	
+	DeclareParam p_xpos, 2    	
+	DeclareParam p_screen, 3
+    DeclareParam r_retVal, 4  	
+
+    ; Setup stack frame	
+    SetupStackFrame  			
+		
+	; Multiply x_pos * 2	
+	clc
+	rol p_xpos
+
+	; Pointer to current screen
+	ldx p_screen
+	
+	; Set pointer to beginning of line
+	lda p_xpos
+	ldy p_ypos	
+	mode8	
+	sta l_pnt
+	sty l_pnt+1	
+
+	BEGIN_CRITICAL_SECTION
+
+	; Remember Data bank
+	phb
+	pla
+	sta l_databank
+
+	; Set data bank to $00
+	lda #$00
+	pha
+	plb
+		
+	; Stuff the pointer into VERA	
+	stz VERA_CTRL
+	lda l_pnt	
+	sta VERA_ADDR_L      		; set base address		
+	lda l_pnt+1	
+	clc
+	adc f:screen_addrs_m, x	
+	sta VERA_ADDR_M	
+	lda f:screen_addrs_h, x
+	ora #$10
+	sta VERA_ADDR_H	
+	
+	; Store character and color
+	mode16
+	lda p_charcolor
+	mode8
+	sta VERA_DATA0	
+	xba	
+	sta VERA_DATA0
+
+	; Set Databank back to original
+	lda l_databank
+	pha
+	plb
+
+	END_CRITICAL_SECTION
+
+	mode16
+
+skip:
+		
+	; Exit the procedure	
+    FreeLocals
+    ProcSuffix  
+
+	;END_CRITICAL_SECTION
 
     rtl
 
@@ -454,7 +594,7 @@ screen_get_char_color:
 screen_set_charset:
 	jsr inicpy	
 
-cpycustom:
+cpycustom:	
 	
 	; Set Direct Page inside the stack, create a local
 	mode16	
@@ -479,8 +619,9 @@ cpycustom:
 
 	; Cleanup local, DP back to $0000
 	mode16
+	lda #$0000
+	tcd
 	FreeLocals
-	RestoreStackFrame
 	mode8
 
 	rts
@@ -536,7 +677,21 @@ upload_default_palette:
     ; Setup stack frame
     SetupStackFrame  
 
-	; DO STUFF HERE
+	; Grab the screen from the param
+	lda p_screen	
+	tax
+
+	mode8
+
+	; Set the screen location to default
+	lda f:screen_addrs, x	
+	sta VERA_L1_MAPBASE
+
+	; Set the charset location to default
+	lda f:char_addrs, x	
+	sta VERA_L1_TILEBASE
+
+	mode16
 
 	; Exit the procedure
     FreeLocals
