@@ -401,19 +401,24 @@
 					.out "-- D --"					
 					phd
 				.else
-					.if (.match (.left (2, {arg}), ^X))
-						.out "-- X --"					
-						phx
-					.else																																										
-						.if (.match (.left (2, {arg}), ^^))
-							.out "-- ^^ --"
-							.byte $a5	
-							.byte <(.right (.tcount ({arg})-2, {arg}))
-							pha
-						.else																																								
-							.out "-- PER --"
-							per arg														
-						.endif												
+					.if (.match (.left (2, {arg}), ^Y))
+						.out "-- Y --"					
+						phy
+					.else
+						.if (.match (.left (2, {arg}), ^X))
+							.out "-- X --"					
+							phx
+						.else
+							.if (.match (.left (2, {arg}), ^^))
+								.out "-- ^^ --"
+								.byte $a5	
+								.byte <(.right (.tcount ({arg})-2, {arg}))
+								pha
+							.else																																								
+								.out "-- PER --"
+								per arg														
+							.endif												
+						.endif
 					.endif
 				.endif
 			.endif
@@ -524,4 +529,12 @@
 
 .macro set_charset_addr addr
 .byte ((addr>>11)<<2)
+.endmacro
+
+.macro bge value
+	bcs value
+.endmacro
+
+.macro blt value
+	bcc value
 .endmacro

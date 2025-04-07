@@ -47,13 +47,26 @@
     FreeParams 2                ; Pop all the params off leaving return value in A  
 .endmacro
 
-; # TODO: Scroll the screen
+; Scroll the screen
 .macro Screen_Scroll screen
     .out "Screen_Scroll"
     SetRetVal                   ; Return Value 
     SetParam screen             ; 
     jsl screen_scroll           ; 
     FreeParams 2                ; Pop all the params off leaving return value in A  
+.endmacro
+
+; Scroll a window
+.macro Screen_Scroll_Window screen, org_x, org_y, width, height
+    .out "Screen_Scroll_Window"
+    SetRetVal                   ; Return Value 
+    SetParam screen             ; 
+    SetParam org_x              ;
+    SetParam org_y              ;
+    SetParam width              ;
+    SetParam height             ;
+    jsl screen_scroll_window    ; 
+    FreeParams 6                ; Pop all the params off leaving return value in A  
 .endmacro
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

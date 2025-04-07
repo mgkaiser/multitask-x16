@@ -36,7 +36,7 @@ KERNAL_SOURCES = \
 	kernal/console.s \
 	kernal/ioinit.s \
 	kernal/screen.s \
-	kernal/drivers/x16/i2c.s \
+	kernal/i2c.s \
 	charset/petscii.s
 	
 MULTITASK_SOURCES = \

@@ -10,7 +10,7 @@
 .include "mac.inc"
 .include "regs.inc"
 
-.export screen_init, screen_clear_line, screen_put_charcolor, screen_clear_screen, screen_set_active
+.export screen_init, screen_clear_line, screen_put_charcolor, screen_clear_screen, screen_set_active, screen_scroll, screen_scroll_window
 
 .import charpet
 
@@ -592,6 +592,238 @@ upload_default_palette:
 
 .endproc
 
+;---------------------------------------------------------------
+; Scroll the screen
+;
+;---------------------------------------------------------------
+.proc screen_scroll: near 
+        
+    ; Save working registers
+    ProcPrefix 
+    ProcFar 
+
+    ; Create local variable - Number in descending order - Number in descending order             
+	DeclareLocal l_srcpnt, 2
+	DeclareLocal l_dstpnt, 1
+    DeclareLocal l_databank, 0	
+    SetLocalCount 3
+
+    ; Declare parameters - reverse order        
+    DeclareParam p_screen, 0
+	DeclareParam r_retVal, 1  
+
+    ; Setup stack frame
+    SetupStackFrame  
+
+	; Grab the screen from the param
+	lda p_screen	
+	tax
+
+	mode8
+
+	BEGIN_CRITICAL_SECTION
+
+	; Remember Data bank
+	phb
+	pla
+	sta l_databank
+
+	; Set data bank to $00
+	lda #$00
+	pha
+	plb
+
+	; Scroll the screen
+
+	; Pointer to current screen
+	ldx p_screen
+
+	; Set source address to beginning of line 2
+	stz l_srcpnt
+	lda #$01
+	sta l_srcpnt+1
+
+	stz VERA_CTRL
+	lda l_srcpnt	
+	sta VERA_ADDR_L      		; set base address		
+	lda l_srcpnt+1	
+	clc
+	adc f:screen_addrs_m, x	
+	sta VERA_ADDR_M	
+	lda f:screen_addrs_h, x
+	ora #$10
+	sta VERA_ADDR_H	
+
+	; Set destination address to beginning of line 1
+	stz l_dstpnt
+	stz l_dstpnt + 1
+
+	lda #$01
+	sta VERA_CTRL
+	lda l_dstpnt	
+	sta VERA_ADDR_L      		; set base address		
+	lda l_dstpnt+1	
+	clc
+	adc f:screen_addrs_m, x	
+	sta VERA_ADDR_M	
+	lda f:screen_addrs_h, x
+	ora #$10
+	sta VERA_ADDR_H	
+
+
+	; Copy Source to Destination	
+	ldx #$3b
+	ldy #$00
+@1:		
+		lda VERA_DATA0
+		sta VERA_DATA1
+		iny
+	bne @1
+		dex
+	bne @1		
+
+	; Set Databank back to original
+	lda l_databank
+	pha
+	plb
+
+	END_CRITICAL_SECTION
+
+	mode16
+
+	; Exit the procedure
+    FreeLocals
+    ProcSuffix      
+
+    rtl
+
+.endproc
+
+;---------------------------------------------------------------
+; Scroll a window
+;
+;---------------------------------------------------------------
+.proc screen_scroll_window: near 
+        
+    ; Save working registers
+    ProcPrefix 
+    ProcFar 
+
+    ; Create local variable - Number in descending order - Number in descending order             
+	DeclareLocal l_srcpnt, 2
+	DeclareLocal l_dstpnt, 1
+    DeclareLocal l_databank, 0	
+    SetLocalCount 3
+
+    ; Declare parameters - reverse order        
+	DeclareParam p_height, 0
+	DeclareParam p_width, 1	
+	DeclareParam p_org_y, 2
+	DeclareParam p_org_x, 3
+    DeclareParam p_screen, 4
+	DeclareParam r_retVal, 5
+
+    ; Setup stack frame
+    SetupStackFrame  
+
+	; Grab the screen from the param
+	lda p_screen	
+	tax
+
+	mode8
+
+	BEGIN_CRITICAL_SECTION
+
+	; Remember Data bank
+	phb
+	pla
+	sta l_databank
+
+	; Set data bank to $00
+	lda #$00
+	pha
+	plb
+
+	; Scroll the screen
+	
+	; Set source and dest addresses	
+	lda p_org_x
+	rol
+	dec
+	sta l_srcpnt
+	sta l_dstpnt
+	lda p_org_y
+	sta l_dstpnt + 1
+	inc 
+	sta l_srcpnt+1
+
+	; Set number of lines
+	ldy p_height
+@2:	
+		; Pointer to current screen
+		ldx p_screen
+
+		; Set source in VERA
+		stz VERA_CTRL
+		lda l_srcpnt	
+		sta VERA_ADDR_L      		; set base address		
+		lda l_srcpnt+1	
+		clc
+		adc f:screen_addrs_m, x	
+		sta VERA_ADDR_M	
+		lda f:screen_addrs_h, x
+		ora #$10
+		sta VERA_ADDR_H	
+
+		; Set dest in VERA
+		lda #$01
+		sta VERA_CTRL
+		lda l_dstpnt	
+		sta VERA_ADDR_L      		; set base address		
+		lda l_dstpnt+1	
+		clc
+		adc f:screen_addrs_m, x	
+		sta VERA_ADDR_M	
+		lda f:screen_addrs_h, x
+		ora #$10
+		sta VERA_ADDR_H	
+
+		; Copy Source to Destination	
+		ldx p_width		
+	@1:		
+			lda VERA_DATA0
+			sta VERA_DATA1
+			lda VERA_DATA0
+			sta VERA_DATA1			
+			dex
+		bne @1		
+
+		; Next line
+		inc l_dstpnt + 1
+		lda l_srcpnt+1
+		inc
+		sta l_srcpnt+1
+
+		; Decrement line counter
+		dey
+	bne @2
+
+	; Set Databank back to original
+	lda l_databank
+	pha
+	plb
+
+	END_CRITICAL_SECTION
+
+	mode16
+
+	; Exit the procedure
+    FreeLocals
+    ProcSuffix      
+
+    rtl
+
+.endproc
 
 .segment "PALETTE"
 

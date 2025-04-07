@@ -2,6 +2,7 @@
 
 .include "mac.inc"
 .include "io.inc"
+.include "i2c.inc"
 .include "multitask.inc"
 .include "screen.inc"
 .include "console.inc"
@@ -12,7 +13,6 @@
 ;;                        CONIN as second device dumps input from keyboard to "focused" pipe
 ;;# TODO: Far Malloc
 ;;# TODO: Native Mode FAT32
-;;# TODO: Native Mode I2c
 
 .export vec_reset_02
 
@@ -22,10 +22,7 @@
 .import screen_set_char_color, screen_get_char_color
 .import screen_set_position, screen_get_position
 
-.import i2c_read_byte, i2c_write_byte, i2c_batch_read, i2c_batch_write
-.import i2c_read_first_byte, i2c_read_next_byte, i2c_read_stop, i2c_direct_read
-.import i2c_write_first_byte, i2c_write_next_byte, i2c_write_stop
-.import i2c_restore, i2c_mutex
+.import i2c_restore, i2c_read_byte, i2c_write_byte
 
 .import mt_init, mt_start
 
@@ -36,8 +33,8 @@
 
 .segment "KERNAL_VAR"
 
-character:  .byte $00
-character2: .byte $00
+character:  .word $00
+character2: .word $00
 
 console1:   .res .sizeof(struct_console)
 console2:   .res .sizeof(struct_console)
@@ -45,10 +42,6 @@ console2:   .res .sizeof(struct_console)
 .segment "KERNAL"
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;
-;; Stuff in "drivers" are low level, call directly, never called from user programs
-;;
-;; Stuff above "drivers" are high level, uses params and stack frame, can be called by user programs
 ;;
 ;; We're always in 16 bit mode except when we aren't....
 ;; 
@@ -72,8 +65,8 @@ vec_reset_02:
     ; General IO Initialization
     mode8
     jsr ioinit           ;go initilize i/o devices
-    jsr i2c_restore      ;release I2C pins and clear mutex flag    
     mode16
+    I2C_Restore    
 
     ; Initialize pages - Ends up in $00 and $01 because 16 bit
     stz $00    
@@ -81,9 +74,9 @@ vec_reset_02:
     ; Initialize the screen driver 
     Screen_Init      
 
-    ; Initialize 2 consoles    
-    Console_Init console1, #$00, #$00, #$61, #$01, #80, #60
-    Console_Init console2, #$00, #$00, #$61, #$02, #80, #60
+    ; Initialize 2 consoles        
+    Console_Init console1, #$00, #$00, #$61, #$01, #40, #20, #10, #10
+    Console_Init console2, #$00, #$00, #$61, #$01, #20, #10, #5, #38
     
     ; Init Pipes        
     Pipe_Init pipe_conout
@@ -103,18 +96,26 @@ vec_reset_02:
     Multitask_Start thread, ^D       
 
     END_CRITICAL_SECTION    
+
+    lda #'A'-1
+    sta character
                         
     @99:                
         lda character
         inc
-        sta character           
-        Screen_Put_CharColor #1, #3, #7, ^A       
+        and #$ff
+        cmp #'Z' + 1
+        bne @98
+        lda #'A'
+    @98:
+        sta character             
+        Console_CharOut console1, ^A                
         
         ;mode8	        
         ;sta $9fb9
         ;mode16            
 
-        cop #$00     
+        ;cop #$00     
     bra @99    
     
     ;ldx #$42
@@ -122,20 +123,31 @@ vec_reset_02:
     ;jsr i2c_read_byte   
 
 .proc thread: near
-        
-    @1:  
 
-        mode16                
+    mode16    
+
+    lda #'A'-1
+    sta character2
+        
+    @1:                      
         lda character2
-        inc 
-        sta character2              
-        Screen_Put_CharColor #1, #3, #3, ^A             
+        inc
+        and #$ff
+        cmp #'O' + 1
+        bne @2
+        lda #'A'
+    @2:
+        sta character2
+        Console_CharOut console2, ^A               
 
-        ;mode8	        
-        ;sta $9fba
-        ;mode16
+        I2C_Read_Byte #$4207
+        beq @nokey
+        mode8	        
+        sta $9fba
+        mode16
+        @nokey:
         
-        cop #$00        
+        ;cop #$00        
     bra @1
     rtl
 .endproc

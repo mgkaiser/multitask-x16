@@ -5,9 +5,11 @@
     cur_screen  .word
     con_width   .word
     con_height  .word
+    org_x       .word
+    org_y       .word
 .endstruct
 
-.macro Console_Init pConsole, cur_x, cur_y, cur_color, cur_screen, con_width, con_height
+.macro Console_Init pConsole, cur_x, cur_y, cur_color, cur_screen, con_width, con_height, org_x, org_y
     .out "Console_Init"    
     SetRetVal                   ; Return Value 
     SetParamL f:pConsole
@@ -17,8 +19,10 @@
     SetParam cur_screen
     SetParam con_width   
     SetParam con_height
+    SetParam org_x
+    SetParam org_y
     jsl console_init
-    FreeParams 9
+    FreeParams 11
 .endmacro
 
 .macro Console_CharOut pConsole, ch
