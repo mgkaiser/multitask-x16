@@ -1,6 +1,6 @@
 PIPE_LEN=16
 
-.struct pipe
+.struct struct_pipe
     buffer  .res 16
     head    .word
     tail    .word

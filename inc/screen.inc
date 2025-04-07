@@ -24,12 +24,6 @@
     FreeParams 2            ; Pop all the params off leaving return value in A  
 .endmacro
 
-; Put char at x/y
-; Put color at x/y
-
-; Get char at x/y
-; Get color at x/y
-
 ; Put char/color at x/y
 .macro Screen_Put_CharColor screen, xpos, ypos, charcolor
     .out "Screen_Put_CharColor"    
@@ -44,24 +38,6 @@
 
 ; Get char/color at x/y
 
-; Get default color
-
-; Set default color
-
-; Get Line Length
-
-; Set Line Length
-
-; Set Screen Address
-
-; Get Screen Address
-
-; Set Char Address
-
-; Get Char Address
-
-; Load Charset
-
 ; Set Active Screen - Make the specified screen active
 .macro Screen_Set_Active screen
     .out "Screen_Set_Active"
@@ -70,3 +46,26 @@
     jsl screen_set_active       ; 
     FreeParams 2                ; Pop all the params off leaving return value in A  
 .endmacro
+
+; # TODO: Scroll the screen
+.macro Screen_Scroll screen
+    .out "Screen_Scroll"
+    SetRetVal                   ; Return Value 
+    SetParam screen             ; 
+    jsl screen_scroll           ; 
+    FreeParams 2                ; Pop all the params off leaving return value in A  
+.endmacro
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Implement these later
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+; Get Line Length
+
+; Set Line Length
+
+; Set Char Address
+
+; Get Char Address
+
+; Load Charset

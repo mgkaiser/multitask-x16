@@ -14,10 +14,7 @@ INT_AUDIO   = %00001000
 .export mt_scheduler, mt_init, mt_start
 
 .segment "INTERRUPT_DATA"
-
-    ;# TODO: Allow this to be relocated anywhere in memory.  
-    ;   Maybe dynamically allocate after malloc is ready?
-    ;   Maybe just a fixed location in High Memory?
+    
     tasks: .res .sizeof(struct_tasks)
 
 .segment "INTERRUPT_VEC"
@@ -114,10 +111,7 @@ INT_AUDIO   = %00001000
     tax
     tsc
     sta f:tasks, x
-        
-    ;; BEGIN: Break out and dispatch the various kinds of IRQ    
-    ;;# TODO: Maybe interrupts should be "special tasks" that launch on their trigger and run to completion?    
-
+            
     mode8
 
     lda #INT_VSYNC

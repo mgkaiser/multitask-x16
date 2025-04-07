@@ -10,9 +10,7 @@
 .include "mac.inc"
 .include "regs.inc"
 
-.export screen_init, screen_clear_line, screen_get_color, screen_set_color, screen_put_charcolor
-.export screen_get_char, screen_set_char, screen_set_char_color, screen_get_char_color
-.export screen_set_position, screen_get_position, screen_clear_screen, screen_set_active
+.export screen_init, screen_clear_line, screen_put_charcolor, screen_clear_screen, screen_set_active
 
 .import charpet
 
@@ -70,8 +68,9 @@ default_screen_addrs_m:
     ProcPrefix 
     ProcFar 
 
-    ; Create local variable - Number in descending order - Number in descending order             
-    SetLocalCount 0
+    ; Create local variable - Number in descending order - Number in descending order                 
+	DeclareLocal l_databank, 0
+    SetLocalCount 1
 
     ; Declare parameters - reverse order        
     DeclareParam r_retVal, 0  
@@ -80,6 +79,18 @@ default_screen_addrs_m:
     SetupStackFrame  
 
 	mode8
+
+	BEGIN_CRITICAL_SECTION
+
+	; Remember Data bank
+	phb
+	pla
+	sta l_databank
+
+	; Set data bank to $00
+	lda #$00
+	pha
+	plb
 
 	; Set active screen to zero
 	lda #$00	
@@ -170,6 +181,13 @@ default_screen_addrs_m:
 	; Load the defaults from the table
 	jsr screen_load_defaults
 
+	; Set Databank back to original
+	lda l_databank
+	pha
+	plb
+
+	END_CRITICAL_SECTION
+
 	mode16
 
 	; Exit the procedure
@@ -223,8 +241,9 @@ screen_load_defaults:
     ProcFar 
 
     ; Create local variable - Number in descending order - Number in descending order     
-	DeclareLocal l_pnt, 0        
-    SetLocalCount 1
+	DeclareLocal l_pnt, 1        
+	DeclareLocal l_databank, 0
+    SetLocalCount 2
 
     ; Declare parameters - reverse order       	
 	DeclareParam p_pline, 0
@@ -250,8 +269,21 @@ screen_load_defaults:
 	lda p_screen
 	tax
 
+	BEGIN_CRITICAL_SECTION
+
+	; Remember Data bank
+	phb
+	pla
+	sta l_databank
+
+	; Set data bank to $00
+	lda #$00
+	pha
+	plb
+
 	; Stuff the pointer into VERA
-	stz VERA_CTRL
+	lda #$00
+	sta VERA_CTRL
 	lda l_pnt
 	sta VERA_ADDR_L      		; set base address
 	lda l_pnt+1
@@ -269,6 +301,13 @@ screen_load_defaults:
 	sta VERA_DATA0
 	dey
 	bne :-
+
+	; Set Databank back to original
+	lda l_databank
+	pha
+	plb
+
+	END_CRITICAL_SECTION
 
 	mode16
 
@@ -395,8 +434,6 @@ screen_load_defaults:
 	END_CRITICAL_SECTION
 
 	mode16
-
-skip:
 		
 	; Exit the procedure	
     FreeLocals
@@ -410,178 +447,6 @@ skip:
 
 .A8
 .I8
-
-;---------------------------------------------------------------
-; Calculate start of line
-;
-;   In:   .x   line
-;   Out:  pnt  line location
-;---------------------------------------------------------------
-screen_set_position:
-	stz pnt
-	stx pnt+1
-	rts
-
-;---------------------------------------------------------------
-; Retrieve start of line
-;
-;   In:   pmt  line
-;   Out:  .x   line
-;---------------------------------------------------------------
-screen_get_position:
-	ldx pnt+1
-	rts	
-
-;---------------------------------------------------------------
-; Get single color
-;
-;   In:   .y       column
-;         pnt      line location
-;   Out:  .a       PETSCII/ISO
-;---------------------------------------------------------------
-screen_get_color:
-	phx ; preserve X (restored after branch)
-	ldx #0
-	tya
-:
-	cmp llen
-	bcc :+
-	sbc llen ; C=1
-	inx
-	bra :-
-:
-	sec
-	rol
-	bra ldapnt2
-
-;---------------------------------------------------------------
-; Get single character
-;
-;   In:   .y       column
-;         pnt      line location
-;   Out:  .a       PETSCII/ISO
-;---------------------------------------------------------------
-screen_get_char:
-	phx ; preserve X
-	ldx #0
-	tya
-ldapnt0:
-	cmp llen
-	bcc ldapnt1
-	sbc llen ; C=1
-	inx
-	bra ldapnt0
-ldapnt1:
-	asl
-ldapnt2:
-	sta VERA_ADDR_L
-	lda pnt+1
-:
-	dex
-	bmi ldapnt3
-	inc
-	bra :-
-ldapnt3:
-	plx ; restore X
-	clc
-	adc #<(>screen_addr)
-	sta VERA_ADDR_M
-	lda #$10 | ^screen_addr
-	sta VERA_ADDR_H
-	lda VERA_DATA0
-	rts
-
-
-;---------------------------------------------------------------
-; Set single color
-;
-;   In:   .a       color
-;         .y       column
-;         pnt      line location
-;   Out:  -
-;---------------------------------------------------------------
-screen_set_color:
-	pha
-	phx ; preserve X (restored after branch)
-	ldx #0
-	tya
-:
-	cmp llen
-	bcc :+
-	sbc llen ; C=1
-	inx
-	bra :-
-:
-	sec
-	rol
-	bra stapnt2
-
-;---------------------------------------------------------------
-; Set single character
-;
-;   In:   .a       PETSCII/ISO
-;         .y       column
-;         pnt      line location
-;   Out:  -
-;---------------------------------------------------------------
-screen_set_char:
-	pha
-	phx ; preserve X
-	ldx #0
-	tya
-stapnt0:
-	cmp llen
-	bcc stapnt1
-	sbc llen ; C=1
-	inx
-	bra stapnt0
-stapnt1:
-	asl
-stapnt2:
-	sta VERA_ADDR_L
-	lda pnt+1
-:
-	dex
-	bmi stapnt3
-	inc
-	bra :-
-stapnt3:
-	plx ; restore X
-	clc
-	adc #<(>screen_addr)
-	sta VERA_ADDR_M
-	lda #$10 | ^screen_addr
-	sta VERA_ADDR_H
-	pla
-	sta VERA_DATA0
-	rts
-
-;---------------------------------------------------------------
-; Set single character and color
-;
-;   In:   .a       PETSCII/ISO
-;         .x       color
-;         .y       column
-;         pnt      line location
-;   Out:  -
-;---------------------------------------------------------------
-screen_set_char_color:
-	jsr screen_set_char
-	stx VERA_DATA0     ;set color
-	rts
-
-;---------------------------------------------------------------
-; Get single character and color
-;
-;   In:   .y       column
-;         pnt      line location
-;   Out:  .a       PETSCII/ISO
-;         .x       color
-;---------------------------------------------------------------
-screen_get_char_color:
-	jsr screen_get_char
-	ldx VERA_DATA0     ;get color
-	rts	
 
 ;---------------------------------------------------------------
 ; Set charset
@@ -661,6 +526,10 @@ upload_default_palette:
 
 	rts
 
+;---------------------------------------------------------------
+; Set Active Screen
+;
+;---------------------------------------------------------------
 .proc screen_set_active: near 
         
     ; Save working registers
@@ -668,7 +537,8 @@ upload_default_palette:
     ProcFar 
 
     ; Create local variable - Number in descending order - Number in descending order             
-    SetLocalCount 0
+    DeclareLocal l_databank, 0
+    SetLocalCount 1
 
     ; Declare parameters - reverse order        
     DeclareParam p_screen, 0
@@ -683,6 +553,18 @@ upload_default_palette:
 
 	mode8
 
+	BEGIN_CRITICAL_SECTION
+
+	; Remember Data bank
+	phb
+	pla
+	sta l_databank
+
+	; Set data bank to $00
+	lda #$00
+	pha
+	plb
+
 	; Set the screen location to default
 	lda f:screen_addrs, x	
 	sta VERA_L1_MAPBASE
@@ -690,6 +572,13 @@ upload_default_palette:
 	; Set the charset location to default
 	lda f:char_addrs, x	
 	sta VERA_L1_TILEBASE
+
+	; Set Databank back to original
+	lda l_databank
+	pha
+	plb
+
+	END_CRITICAL_SECTION
 
 	mode16
 

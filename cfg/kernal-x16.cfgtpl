@@ -19,6 +19,7 @@ MEMORY {
 SEGMENTS {    
     STACK1:         load = STACK1,          type = bss;
     KVAR:           load = KVAR,            type = bss;
+    CONSOLE_VAR:    load = KVAR,            type = bss;
     I2CMUTEX:       load = KVAR,            type = bss;        
     KVAR2:          load = KVAR2,           type = bss;
     INTERRUPT_DATA: load = KVAR2,           type = bss;    
@@ -32,6 +33,7 @@ SEGMENTS {
     PIPES:          load = KERNAL,          type = ro;
     CHARPET:        load = KERNAL,          type = ro;
     PALETTE:        load = KERNAL,          type = ro;
+    CONSOLE:        load = KERNAL,          type = ro;
     VECTORS_816:    load = VECTORS_816,     type = ro;
     VECTORS_02:     load = VECTORS_02,      type = ro;
 }

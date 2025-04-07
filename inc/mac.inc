@@ -358,12 +358,16 @@
 .endmacro
 
 .macro FreeLocals
+	; Make this smart and move SP rather than a mess of PLA when lcount > x
+	; Always PLA the last one so RetVal ends up in A
 	.repeat lcount
 		pla
 	.endrepeat
 .endmacro
 
 .macro FreeParams count
+	; Make this smart and move SP rather than a mess of PLA when count > x
+	; Always PLA the last one so RetVal ends up in A
 	.repeat count
 		pla
 	.endrepeat
@@ -373,6 +377,7 @@
 	lcount = count
 .endmacro
 
+; # TODO: Document these
 ; Push Params, detect type
 ; PER = label				param is an offset, but pushes the resolved value onto the stack
 ; PEA = Absloute Value		param is the actual 16-bit value to push on the stack
@@ -399,9 +404,16 @@
 					.if (.match (.left (2, {arg}), ^X))
 						.out "-- X --"					
 						phx
-					.else																																								
-						.out "-- PER --"
-						per arg														
+					.else																																										
+						.if (.match (.left (2, {arg}), ^^))
+							.out "-- ^^ --"
+							.byte $a5	
+							.byte <(.right (.tcount ({arg})-2, {arg}))
+							pha
+						.else																																								
+							.out "-- PER --"
+							per arg														
+						.endif												
 					.endif
 				.endif
 			.endif

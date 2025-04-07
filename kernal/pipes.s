@@ -8,6 +8,14 @@
 
 .export pipe_init, pipe_push, pipe_pop
 
+.export pipe_conout
+.export pipe_kbdin
+
+.segment "KVAR"
+    PIPE_SIZE = .sizeof(struct_pipe)
+    pipe_conout:    .res PIPE_SIZE
+    pipe_kbdin:     .res PIPE_SIZE
+
 .segment "PIPES"
 
 ; ***************************************************************
@@ -38,12 +46,12 @@
     mode8   
 
     ; Make head point to 0
-    ldy #pipe::head
+    ldy #struct_pipe::head
     lda #$0000
     sta [pPipe], y
 
     ; Make tail point to 0
-    ldy #pipe::tail    
+    ldy #struct_pipe::tail    
     sta [pPipe], y
 
     mode16
@@ -89,8 +97,8 @@
 
     mode8
 
-    ; next = pPipe->pipe::head + 1;
-    ldy #pipe::head
+    ; next = pPipe->struct_pipe::head + 1;
+    ldy #struct_pipe::head
     lda [pPipe], y 
     inc
     sta l_Next
@@ -104,8 +112,8 @@
 
 @1:
 
-    ; if (next == pPipe->pipe::tail)            if the head + 1 == tail, circular buffer is full
-    ldy #pipe::tail
+    ; if (next == pPipe->struct_pipe::tail)            if the head + 1 == tail, circular buffer is full
+    ldy #struct_pipe::tail
     lda [pPipe], y 
     cmp l_Next
     bne @2
@@ -116,15 +124,15 @@
 
 @2:
 
-    ; pPipe[pPipe->pipe::head] = data;          ; Load data and then move    
-    ldy #pipe::head
+    ; pPipe[pPipe->struct_pipe::head] = data;          ; Load data and then move    
+    ldy #struct_pipe::head
     lda [pPipe], y 
-    tay                                         ; Y = pPipe->pipe::head
+    tay                                         ; Y = pPipe->struct_pipe::head
     lda value
     sta [pPipe], y    
     
-    ; pPipe->pipe::head = next;                 ; head to next data offset.
-    ldy #pipe::head
+    ; pPipe->struct_pipe::head = next;                 ; head to next data offset.
+    ldy #struct_pipe::head
     lda l_Next
     sta [pPipe], y
 
@@ -173,10 +181,10 @@ end:
 
     mode8
 
-    ; if (pPipe->pipe::head == pPipe->pipe::tail)  // if the head == tail, we don't have any data
-    ldy #pipe::head    
+    ; if (pPipe->struct_pipe::head == pPipe->struct_pipe::tail)  // if the head == tail, we don't have any data
+    ldy #struct_pipe::head    
     lda [pPipe], y
-    ldy #pipe::tail
+    ldy #struct_pipe::tail
     cmp [pPipe], y
     bne @1
 
@@ -186,8 +194,8 @@ end:
 
 @1:
 
-    ; next = pPipe->pipe::tail + 1;  // next is where tail will point to after this read.
-    ldy #pipe::tail
+    ; next = pPipe->struct_pipe::tail + 1;  // next is where tail will point to after this read.
+    ldy #struct_pipe::tail
     lda [pPipe], y 
     inc
     sta l_Next
@@ -201,8 +209,8 @@ end:
 
 @2:
 
-    ; *r_retVal = pPipe[pPipe->pipe::tail];  // Read data and then move    
-    ldy #pipe::tail
+    ; *r_retVal = pPipe[pPipe->struct_pipe::tail];  // Read data and then move    
+    ldy #struct_pipe::tail
     lda [pPipe], y 
     tay                                         
     lda [pPipe], y    
@@ -210,7 +218,7 @@ end:
     sta r_retVal
     
     ; c->tail = next;              // tail to next offset.
-    ldy #pipe::tail
+    ldy #struct_pipe::tail
     lda l_Next
     sta [pPipe], y
 

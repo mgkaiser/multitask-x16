@@ -4,7 +4,17 @@
 .include "io.inc"
 .include "multitask.inc"
 .include "screen.inc"
+.include "console.inc"
 .include "pipes.inc"
+
+;;# TODO: Every module should have its own unique code, data and jumptable segment.  Will arrange them in memory in the config as needed
+;;
+;;       # TODO: "Critical Section" needs to be implemented without suspending interrupts.  If critical section is on, just don't task switch,  still process interrupts
+;;# TODO: Stream devices: CONOUT as first device dumps content of pipe to a console
+;;                        CONIN as second device dumps input from keyboard to "focused" pipe
+;;# TODO: Far Malloc
+;;# TODO: Allocate space in first 64k for stacks for processes.  Stack fixed to procid
+;;# TODO: FAT32
 
 .export vec_reset_02
 
@@ -24,10 +34,15 @@
 .import pipe_init, pipe_push, pipe_pop
 .import pipe_conout, pipe_kbdin
 
+.import console_init, console_charout
+
 .segment "KVAR"
-spacer1:    .res 10
+
 character:  .byte $00
 character2: .byte $00
+
+console1:   .res .sizeof(struct_console)
+console2:   .res .sizeof(struct_console)
 
 .segment "STACK1"
 .res $80 
@@ -60,19 +75,21 @@ vec_reset_02:
     ; Start Interrupts       
     Multitask_Init   
 
+    ; General IO Initialization
     mode8
     jsr ioinit           ;go initilize i/o devices
-    jsr i2c_restore      ;release I2C pins and clear mutex flag   
-    ;jsr ramtas           ;go ram test and set
-	;jsr restor           ;go set up os vectors	
-	;jsr ps2data_init     
+    jsr i2c_restore      ;release I2C pins and clear mutex flag    
     mode16
 
     ; Initialize pages - Ends up in $00 and $01 because 16 bit
     stz $00    
 
     ; Initialize the screen driver 
-    Screen_Init        
+    Screen_Init      
+
+    ; Initialize 2 consoles    
+    Console_Init console1, #$00, #$00, #$61, #$01, #80, #60
+    Console_Init console2, #$00, #$00, #$61, #$02, #80, #60
     
     ; Init Pipes        
     Pipe_Init pipe_conout
@@ -80,12 +97,13 @@ vec_reset_02:
 
     ; Clear the screen 
     Screen_Set_Active #1      
-    Screen_Clear_Screen #1           
-                    
-    Screen_Put_CharColor #1, #1, #1, #$6101     
-    Screen_Put_CharColor #1, #2, #1, #$6102     
-    Screen_Put_CharColor #1, #3, #1, #$6103     
-    Screen_Put_CharColor #1, #4, #1, #$6104     
+    Screen_Clear_Screen #1         
+
+    ; Print test string    
+    Console_CharOut console1, #$01
+    Console_CharOut console1, #$02
+    Console_CharOut console1, #$03
+    Console_CharOut console1, #$04                          
 
     ; Start the 2nd thread    
     Multitask_Start thread, #proc_stack, ^D       
@@ -102,7 +120,7 @@ vec_reset_02:
         ;sta $9fb9
         ;mode16            
 
-        ;cop #$00     
+        cop #$00     
     bra @99    
     
     ;ldx #$42
@@ -123,7 +141,7 @@ vec_reset_02:
         ;sta $9fba
         ;mode16
         
-        ;cop #$00        
+        cop #$00        
     bra @1
     rtl
 .endproc

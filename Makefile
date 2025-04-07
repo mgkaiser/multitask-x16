@@ -33,6 +33,7 @@ KERNAL_SOURCES = \
 	kernal/declare.s \
 	kernal/interrupt.s \
 	kernal/pipes.s \
+	kernal/console.s \
 	kernal/drivers/x16/x16.s \
 	kernal/drivers/x16/screen.s \
 	kernal/drivers/x16/i2c.s \
