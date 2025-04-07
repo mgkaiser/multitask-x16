@@ -11,7 +11,9 @@
 .export pipe_conout
 .export pipe_kbdin
 
-.segment "KVAR"
+.segment "PIPES_JUMP"
+
+.segment "PIPES_VAR"
     PIPE_SIZE = .sizeof(struct_pipe)
     pipe_conout:    .res PIPE_SIZE
     pipe_kbdin:     .res PIPE_SIZE

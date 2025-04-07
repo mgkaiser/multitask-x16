@@ -11,7 +11,11 @@
 .export ioinit
 .export vera_wait_ready
 
-.segment "MACHINE"
+.segment "IOINIT_JUMP"
+
+.segment "IOINIT_VAR"
+
+.segment "IOINIT"
 
 ;---------------------------------------------------------------
 ; IOINIT - Initialize I/O Devices

@@ -34,8 +34,8 @@ KERNAL_SOURCES = \
 	kernal/interrupt.s \
 	kernal/pipes.s \
 	kernal/console.s \
-	kernal/drivers/x16/x16.s \
-	kernal/drivers/x16/screen.s \
+	kernal/ioinit.s \
+	kernal/screen.s \
 	kernal/drivers/x16/i2c.s \
 	charset/petscii.s
 	

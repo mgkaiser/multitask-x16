@@ -12,6 +12,10 @@ ddr = d1ddra
 SDA = (1 << 0)
 SCL = (1 << 1)
 
+.segment "I2C_JUMP"
+
+.segment "I2C_VAR"
+
 .segment "I2CMUTEX"
 i2c_mutex: .res 1
 

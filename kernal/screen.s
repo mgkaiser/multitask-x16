@@ -14,7 +14,9 @@
 
 .import charpet
 
-.segment "KVAR2" ; more KERNAL vars
+.segment "SCREEN_JUMP" 
+
+.segment "SCREEN_VAR" 
 
 char_addrs: .res 5	
 screen_addrs: .res 5

@@ -1,39 +1,72 @@
 MEMORY {    
 
-    /* $0200 - $02ff */
-    KVAR:           start = $0200, size = $0100;
+    /* $0200 - $02ff */                                 // Full
+    KVAR200:        start = $0200, size = $0100;
 
-    /* $0300 - $03ff */
-    INTERRUPT_VEC:  start = $0300, size = $0010;                            
-    KVAR2:          start = $0310, size = $00f0;
+    /* $0300 - $03ff */                                 // Full
+    INTERRUPT_VEC:  start = $0300, size = $0010;
+    KVAR300:        start = $0310, size = $00f0;
 
-    STACK1:         start = $0400, size = $0100;
+    /* $0400 - $04ff */                                 // Plenty of space
+    KVAR400:        start = $0400, size = $0100;
+    
+    /* Allocate space for 125 stacks of 128 bytes each */
+    STACKS:         start = $6000, size = $3e80;
 
-    SIGNATURE:      start = $c000, size = $0010, fill = yes, fillval=$00;
-    KERNAL:         start = $c010, size = $3ef0, fill = yes, fillval=$ea;
+    /* This stuff goes in the ROM */
+    KERNAL:         start = $c000, size = $3f00, fill = yes, fillval=$ea;    
     JUMP_TABLE:     start = $ff00, size = $00e0, fill = yes, fillval=$dd;
     VECTORS_816:    start = $ffe0, size = $0010, fill = yes, fillval=$ee;
     VECTORS_02:     start = $fff0, size = $0010, fill = yes, fillval=$ff;
 }
 
 SEGMENTS {    
-    STACK1:         load = STACK1,          type = bss;
-    KVAR:           load = KVAR,            type = bss;
-    CONSOLE_VAR:    load = KVAR,            type = bss;
-    I2CMUTEX:       load = KVAR,            type = bss;        
-    KVAR2:          load = KVAR2,           type = bss;
-    INTERRUPT_DATA: load = KVAR2,           type = bss;    
-    INTERRUPT_VEC:  load = INTERRUPT_VEC,   type = bss;    
+    
+    // IOINIT    
+    IOINIT:         load = KERNAL,          type = ro;    
+    IOINIT_VAR:     load = KVAR300,         type = bss;
+    IOINIT_JUMP:    load = JUMP_TABLE,      type = ro;    
+
+    // KERNAL
     KERNAL:         load = KERNAL,          type = ro;
-    CODE:           load = KERNAL,          type = ro;
-    SCREEN:         load = KERNAL,          type = ro;
+    KERNAL_VAR:     load = KVAR300,         type = bss;
+    KERNAL_JUMP:    load = JUMP_TABLE,      type = ro;
+
+    // I2C
     I2C:            load = KERNAL,          type = ro;
-    MACHINE:        load = KERNAL,          type = ro;
-    INTERRUPT:      load = KERNAL,          type = ro;
+    I2C_VAR:        load = KVAR300          type = bss;    
+    I2CMUTEX:       load = KVAR300,         type = bss;        
+    I2C_JUMP:       load = JUMP_TABLE,      type = ro;
+
+    // Interrupt
+    INTERRUPT:      load = KERNAL,          type = ro;    
+    INTERRUPT_VAR:  load = KVAR200          type = bss;
+    INTERRUPT_VEC:  load = INTERRUPT_VEC,   type = bss;    
+    INTERRUPT_JUMP: load = JUMP_TABLE,      type = ro;
+
+    // Screen
+    SCREEN:         load = KERNAL,          type = ro;
+    SCREEN_VAR:     load = KVAR300,         type = bss;
+    SCREEN_JUMP:    load = JUMP_TABLE,      type = ro;
+
+    // Pipes
     PIPES:          load = KERNAL,          type = ro;
+    PIPES_VAR:      load = KVAR300,         type = bss;
+    PIPES_JUMP:     load = JUMP_TABLE,      type = ro;
+
+    // Console
+    CONSOLE:        load = KERNAL,          type = ro;
+    CONSOLE_VAR:    load = KVAR300,         type = bss;
+    CONSOLE_JUMP:   load = JUMP_TABLE,      type = ro;
+
+    // Stacks
+    STACKS:         load = STACKS,          type = ro;      
+
+    // Resources
     CHARPET:        load = KERNAL,          type = ro;
     PALETTE:        load = KERNAL,          type = ro;
-    CONSOLE:        load = KERNAL,          type = ro;
+
+    // Vectors
     VECTORS_816:    load = VECTORS_816,     type = ro;
     VECTORS_02:     load = VECTORS_02,      type = ro;
 }

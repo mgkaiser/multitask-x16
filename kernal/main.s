@@ -7,14 +7,12 @@
 .include "console.inc"
 .include "pipes.inc"
 
-;;# TODO: Every module should have its own unique code, data and jumptable segment.  Will arrange them in memory in the config as needed
-;;
-;;       # TODO: "Critical Section" needs to be implemented without suspending interrupts.  If critical section is on, just don't task switch,  still process interrupts
+;;# TODO: "Critical Section" needs to be implemented without suspending interrupts.  If critical section is on, just don't task switch,  still process interrupts
 ;;# TODO: Stream devices: CONOUT as first device dumps content of pipe to a console
 ;;                        CONIN as second device dumps input from keyboard to "focused" pipe
 ;;# TODO: Far Malloc
-;;# TODO: Allocate space in first 64k for stacks for processes.  Stack fixed to procid
-;;# TODO: FAT32
+;;# TODO: Native Mode FAT32
+;;# TODO: Native Mode I2c
 
 .export vec_reset_02
 
@@ -36,17 +34,13 @@
 
 .import console_init, console_charout
 
-.segment "KVAR"
+.segment "KERNAL_VAR"
 
 character:  .byte $00
 character2: .byte $00
 
 console1:   .res .sizeof(struct_console)
 console2:   .res .sizeof(struct_console)
-
-.segment "STACK1"
-.res $80 
-proc_stack: 
 
 .segment "KERNAL"
 
@@ -106,7 +100,7 @@ vec_reset_02:
     Console_CharOut console1, #$04                          
 
     ; Start the 2nd thread    
-    Multitask_Start thread, #proc_stack, ^D       
+    Multitask_Start thread, ^D       
 
     END_CRITICAL_SECTION    
                         

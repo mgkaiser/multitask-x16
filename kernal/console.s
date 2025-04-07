@@ -10,6 +10,8 @@
 
 .export console_init, console_charout
 
+.segment "CONSOLE_JUMP" 
+
 .segment "CONSOLE_VAR" 
 
 cur_x:      .res 2

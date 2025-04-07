@@ -1,7 +1,7 @@
-MAX_TASKS=32
+MAX_TASKS=125
 
 .struct struct_tasks   	
-	taskTable   .res 64
+	taskTable   .res 250
     currentTask .word
 .endstruct
 
@@ -17,14 +17,13 @@ MAX_TASKS=32
     FreeParams 1            ; Pop all the params off leaving return value in A  
 .endmacro
 
-.macro Multitask_Start procAddr, procStack, dataBank
+.macro Multitask_Start procAddr, dataBank
     .out "Multitask_Start"
     SetRetVal               ; Return Value       
-    SetParamL f:procAddr    ; pointer to process                                   - Counts a 2 because long                 
-    SetParam procStack      ; Stack for the process we are starting    
+    SetParamL f:procAddr    ; pointer to process                                   - Counts a 2 because long                     
     SetParam dataBank       ; Databank for the process we are starting
     jsl mt_start            ; Start the process
-    FreeParams 5            ; Pop all the params off leaving return value in A  
+    FreeParams 4            ; Pop all the params off leaving return value in A  
 .endmacro
 
 .macro Multitask_Kill procId

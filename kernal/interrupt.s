@@ -13,7 +13,12 @@ INT_AUDIO   = %00001000
 
 .export mt_scheduler, mt_init, mt_start
 
-.segment "INTERRUPT_DATA"
+.segment "STACKS"
+stack_start:
+
+.segment "INTERRUPT_JUMP"
+
+.segment "INTERRUPT_VAR"
     
     tasks: .res .sizeof(struct_tasks)
 
@@ -242,15 +247,15 @@ INT_AUDIO   = %00001000
     ProcFar 
 
     ; Create local variable - Number in descending order    
+    DeclareLocal l_newStack, 2
     DeclareLocal l_currentStack, 1
     DeclareLocal l_newProcSlot, 0
-    SetLocalCount 2
+    SetLocalCount 3
 
     ; Declare parameters - reverse order
-    DeclareParam p_dataBank, 0
-    DeclareParam p_stackAddress, 1
-    DeclareParam p_processAddr, 2       ; Skip 1 because long    
-    DeclareParam r_retVal, 4
+    DeclareParam p_dataBank, 0    
+    DeclareParam p_processAddr, 1       ; Skip 1 because long    
+    DeclareParam r_retVal, 3
     
     ; Setup stack frame
     SetupStackFrame
@@ -267,12 +272,22 @@ INT_AUDIO   = %00001000
     skip1:
     sta l_newProcSlot   
 
+    ; Calculate new stack
+    ; stack_start + $7f + ((l_newProcSlot / 2) * 128)        
+    clc
+    .repeat 6
+    rol    
+    .endrepeat
+    clc
+    adc #stack_start + $7f
+    sta l_newStack        
+
     ; remember current stack
     tsc
     sta l_currentStack 
     
     ; set the new stack
-    lda p_stackAddress      
+    lda l_newStack      
     tcs    
 
     ;;# TODO: Do something sane when task runs to completion?  It should remove itself from task table.  
