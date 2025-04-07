@@ -97,14 +97,14 @@ INT_AUDIO   = %00001000
     phy         ; Push Y
     phd         ; Push direct page
     phb         ; Push data bank    
-    lda f:$00   ; Push RAM and ROM Banks    
+    lda a:$00   ; Push RAM and ROM Banks    
     pha    
 
     sei
 
     ; RAM and ROM banks to 0
     lda #$0000
-    sta f:$00    
+    sta a:$00    
 
     ; Remember the current stack    
     lda f:tasks + struct_tasks::currentTask         
@@ -210,7 +210,7 @@ INT_AUDIO   = %00001000
 
     ; Restore State          
     pla         ; Pull RAM and ROM Banks
-    sta f:$00
+    sta a:$00
     plb         ; Pull data bank
     pld         ; Pull direct page
     ply         ; Pull Y
